@@ -12,7 +12,7 @@ class SalesTask extends Model
     protected $fillable = ['sales_id', 'jenis_tugas', 'deskripsi', 'status', 'shipment_id'];
 
     public function sales() {
-        return $this->belongsTo(Sale::class);
+        return $this->belongsTo(Sales::class);
     }
 
     public function shipment() {

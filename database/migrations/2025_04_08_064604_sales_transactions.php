@@ -13,13 +13,13 @@ return new class extends Migration
     {
         Schema::create('sales_transactions', function (Blueprint $table) {
             $table->id(); // 
-            $table->unsignedBigInteger('sales_id'); // relasi ke tabel sales
-            $table->string('store_name', 100); // nama toko tempat promosi/penjualan
-            $table->string('product_name', 100); // nama produk yang dijual
-            $table->smallInteger('quantity')->unsigned()->default(1); // jumlah produk
-            $table->decimal('price', 6, 2); // harga per produk
-            $table->decimal('total', 8, 2); // total = price * quantity
-            $table->date('transaction_date'); // tanggal transaksi
+            $table->unsignedBigInteger('sales_id');
+            $table->string('nama_toko', 100);
+            $table->string('nama_produk', 100); 
+            $table->smallInteger('jumlah')->unsigned()->default(1); 
+            $table->decimal('harga', 6, 2); 
+            $table->decimal('total', 8, 2); 
+            $table->date('tanggal_transaksi'); 
             $table->timestamps();
         
             $table->foreign('sales_id')->references('id')->on('sales')->onDelete('cascade');

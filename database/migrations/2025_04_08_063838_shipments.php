@@ -14,8 +14,8 @@ return new class extends Migration
         Schema::create('shipments', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('order_id');
-            $table->date('estimated_delivery')->nullable();
-            $table->enum('shipping_status',['processing','shipped','delivered'])->nullable()->default('processing');
+            $table->date('perkiraan_pengiriman')->nullable();
+            $table->enum('status_pengiriman',['diproses','dikirim','diterima'])->nullable()->default('diproses');
             $table->timestamps();
         
             $table->foreign('order_id')->references('id')->on('orders')->onDelete('cascade');

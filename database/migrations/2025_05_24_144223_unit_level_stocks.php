@@ -11,15 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('products', function (Blueprint $table) {
+        Schema::create('unit_level_stocks', function (Blueprint $table) {
             $table->id();
-            $table->string('nama_produk', 100);
-            $table->enum('jenis_produk', ['obat herbal', 'obat komersial']);
-            $table->decimal('harga', 6, 2);
-            $table->string('image');
+            $table->foreignId('product_id')->constrained()->onDelete('cascade');
+            $table->enum('level_name', ['kardus', 'kotak', 'saset', 'butir']);
+            $table->integer('level_order'); 
+            $table->unsignedInteger('conversion_to_next')->nullable(); 
             $table->timestamps();
         });
-
     }
 
     /**
@@ -27,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        //
+        Schema::dropIfExists('unit_level_stocks');  
     }
 };

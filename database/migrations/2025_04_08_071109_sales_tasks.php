@@ -16,7 +16,7 @@ return new class extends Migration
             $table->unsignedBigInteger('sales_id');
             $table->enum('jenis_tugas', ['pengantaran', 'promosi']);
             $table->text('deskripsi')->nullable();
-            $table->enum('status', ['pending', 'completed'])->default('pending');
+            $table->enum('status', ['diproses', 'selesai'])->default('diproses');
             $table->unsignedBigInteger('shipment_id')->nullable();
             $table->timestamps();
         

@@ -9,7 +9,7 @@ class Payment extends Model
 {
     use HasFactory;
     protected $table = 'payments';
-    protected $fillable = ['order_id', 'amount', 'payment_method', 'payment_status', 'transaction_date'];
+    protected $fillable = ['order_id', 'jumlah', 'metode_pembayaran', 'status_pembayaran', 'tanggal_transaksi'];
 
     public function order() {
         return $this->belongsTo(Order::class);

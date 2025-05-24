@@ -9,7 +9,7 @@ class Shipment extends Model
 {
     use HasFactory;
     protected $table = 'shipments';
-    protected $fillable = ['order_id', 'estimated_delivery', 'shipping_status'];
+    protected $fillable = ['order_id', 'perkiraan_pengiriman', 'status_pengiriman'];
 
     public function order() {
         return $this->belongsTo(Order::class);

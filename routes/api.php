@@ -14,21 +14,22 @@ use App\Http\Controllers\SalesController;
 use App\Http\Controllers\SalesTransactionsController;
 use App\Http\Controllers\SalesTasksController;
 use App\Http\Controllers\ResellersController;
+use App\Http\Controllers\LoginController;
 
 // Products
-// Route::apiResource('products', ProductsController::class);
+Route::apiResource('products', ProductsController::class);
 
-// // Orders
-// Route::apiResource('orders', OrdersController::class);
+// Orders
+Route::apiResource('orders', OrdersController::class);
 
-// // Order Items
-// Route::apiResource('order-items', OrderItemsController::class);
+// Order Items
+Route::apiResource('order-items', OrderItemsController::class);
 
-// // Shipments
-// Route::apiResource('shipments', ShipmentsController::class);
+// Shipments
+Route::apiResource('shipments', ShipmentsController::class);
 
-// // Payments
-// Route::apiResource('payments', PaymentsController::class);
+// Payments
+Route::apiResource('payments', PaymentsController::class);
 
 // Users
 Route::apiResource('users', UserController::class);
@@ -38,14 +39,17 @@ Route::post('/sales/register', [RegisterController::class, 'register_sales']);
 Route::post('/customer/register', [RegisterController::class, 'register_customer']);
 Route::post('/reselles/register', [RegisterController::class, 'register_reseller']);
 
-// // Sales
-// Route::apiResource('sales', SalesController::class);
+// Sales
+Route::apiResource('sales', SalesController::class);
 
-// // Sales Transactions
-// Route::apiResource('sales-transactions', SalesTransactionsController::class);
+// Sales Transactions
+Route::apiResource('sales-transactions', SalesTransactionsController::class);
 
-// // Sales Tasks
-// Route::apiResource('sales-tasks', SalesTasksController::class);
+// Sales Tasks
+Route::apiResource('sales-tasks', SalesTasksController::class);
 
-// // Resellers
-// Route::apiResource('resellers', ResellersController::class);
+// Resellers
+Route::apiResource('resellers', ResellersController::class);
+
+// Login
+Route::post('/login',[LoginController::class,'login']);

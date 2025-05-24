@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('nama_toko',100);
             $table->string('no_hp',15);
-            $table->enum('status', ['active', 'non_active'])->default('active');
+            $table->enum('status', ['aktif', 'tidak_aktif'])->default('aktif');
             $table->unsignedBigInteger('user_id');
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
             $table->timestamps();
