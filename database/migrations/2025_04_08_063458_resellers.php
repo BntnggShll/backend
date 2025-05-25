@@ -12,11 +12,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('resellers', function (Blueprint $table) {
-            $table->id();
+            $table->integer('id')->autoIncrement();
+            $table->Integer('user_id');
             $table->string('nama_toko',100);
             $table->string('no_hp',15);
             $table->enum('status', ['aktif', 'tidak_aktif'])->default('aktif');
-            $table->unsignedBigInteger('user_id');
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
             $table->timestamps();
         });

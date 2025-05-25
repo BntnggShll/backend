@@ -12,8 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('payments', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('order_id');
+            $table->integer('id')->autoIncrement();
+            $table->Integer('order_id');
             $table->decimal('jumlah', 8, 2);
             $table->enum('metode_pembayaran', ['transfer', 'cod', 'ewallet']);
             $table->enum('status_pembayaran', ['menunggu', 'selesai', 'gagal'])->default('menunggu');

@@ -8,12 +8,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 class Sales extends Model
 {
     use HasFactory;
-    protected $table = 'sales';
-    protected $fillable = ['tanggal_bergabung', 'alamat', 'user_id'];
-
-    public function user() {
-        return $this->belongsTo(User::class);
-    }
+    protected $table = 'users';
+    protected $fillable = ['name', 'role', 'alamat', 'email', 'password'];
 
     public function salesTasks() {
         return $this->hasMany(SalesTask::class);

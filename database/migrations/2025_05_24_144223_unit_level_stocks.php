@@ -12,12 +12,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('unit_level_stocks', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('product_id')->constrained()->onDelete('cascade');
+            $table->integer('id')->autoIncrement();
+            $table->integer('product_id');
             $table->enum('level_name', ['kardus', 'kotak', 'saset', 'butir']);
             $table->integer('level_order'); 
             $table->unsignedInteger('conversion_to_next')->nullable(); 
             $table->timestamps();
+
+            $table->foreign('product_id')->references('id')->on('products')->onDelete('cascade');
         });
     }
 

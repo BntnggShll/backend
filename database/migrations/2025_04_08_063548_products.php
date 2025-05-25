@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('products', function (Blueprint $table) {
-            $table->id();
+            $table->integer('id')->autoIncrement();
             $table->string('nama_produk', 100);
             $table->enum('jenis_produk', ['obat herbal', 'obat komersial']);
             $table->decimal('harga', 6, 2);

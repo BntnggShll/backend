@@ -12,15 +12,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('sales_tasks', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('sales_id');
+            $table->integer('id')->autoIncrement();
+            $table->Integer('sales_id');
             $table->enum('jenis_tugas', ['pengantaran', 'promosi']);
             $table->text('deskripsi')->nullable();
             $table->enum('status', ['diproses', 'selesai'])->default('diproses');
-            $table->unsignedBigInteger('shipment_id')->nullable();
+            $table->Integer('shipment_id')->nullable();
             $table->timestamps();
         
-            $table->foreign('sales_id')->references('id')->on('sales')->onDelete('cascade');
+            $table->foreign('sales_id')->references('id')->on('users')->onDelete('cascade');
             $table->foreign('shipment_id')->references('id')->on('shipments')->onDelete('set null');
         });
     }

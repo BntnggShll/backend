@@ -12,8 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('sales_transactions', function (Blueprint $table) {
-            $table->id(); // 
-            $table->unsignedBigInteger('sales_id');
+            $table->integer('id')->autoIncrement(); // 
+            $table->Integer('sales_id');
             $table->string('nama_toko', 100);
             $table->string('nama_produk', 100); 
             $table->smallInteger('jumlah')->unsigned()->default(1); 
@@ -22,7 +22,7 @@ return new class extends Migration
             $table->date('tanggal_transaksi'); 
             $table->timestamps();
         
-            $table->foreign('sales_id')->references('id')->on('sales')->onDelete('cascade');
+            $table->foreign('sales_id')->references('id')->on('users')->onDelete('cascade');
         });
         
     }

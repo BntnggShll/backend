@@ -12,9 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('order_items', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('order_id');
-            $table->unsignedBigInteger('product_id');
+            $table->integer('id')->autoIncrement();
+            $table->Integer('order_id');
+            $table->Integer('product_id');
             $table->smallInteger('jumlah' )->unsigned()->default(1);
             $table->decimal('harga', 6, 2);
             $table->timestamps();

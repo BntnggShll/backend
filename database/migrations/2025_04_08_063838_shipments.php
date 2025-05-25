@@ -12,8 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('shipments', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('order_id');
+            $table->integer('id')->autoIncrement();
+            $table->Integer('order_id');
             $table->date('perkiraan_pengiriman')->nullable();
             $table->enum('status_pengiriman',['diproses','dikirim','diterima'])->nullable()->default('diproses');
             $table->timestamps();
