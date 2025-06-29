@@ -23,7 +23,8 @@ class UserResource extends Resource
 {
     protected static ?string $model = User::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-user';
+    protected static ?string $navigationGroup = 'Manajemen User';
 
     public static function form(Form $form): Form
     {
@@ -38,16 +39,19 @@ class UserResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('name')
-                    ->sortable(),
+                    ->sortable()
+                    ->searchable(),
                 TextColumn::make('email')
-                    ->sortable(),
+                    ->sortable()
+                    ->searchable(),
                 TextColumn::make('role')
                     ->sortable(),
                 TextColumn::make('alamat')
-                    ->sortable(),
+                    ->sortable()
+                    ->searchable(),
                 TextColumn::make('created_at')
                     ->sortable()
-                    ->label('Tanggal bergabungy')
+                    ->label('Tanggal bergabung')
             ])
             ->filters([
                 SelectFilter::make('role')
@@ -58,6 +62,7 @@ class UserResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

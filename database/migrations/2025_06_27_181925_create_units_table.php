@@ -11,14 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('stocks', function (Blueprint $table) {
+        Schema::create('units', function (Blueprint $table) {
             $table->integer('id')->autoIncrement();
-            $table->integer('product_id');
-            $table->enum('unit_level', ['kardus', 'kotak', 'saset', 'butir']);
-            $table->integer('quantity');
+            $table->string('nama_unit')->unique();
             $table->timestamps();
-
-            $table->foreign('product_id')->references('id')->on('products')->onDelete('cascade');
         });
     }
 
@@ -27,6 +23,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        //
+        Schema::dropIfExists('units');
     }
 };

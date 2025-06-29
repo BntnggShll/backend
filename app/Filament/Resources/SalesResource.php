@@ -22,7 +22,8 @@ class SalesResource extends Resource
 {
     protected static ?string $model = Sales::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-users';
+    protected static ?string $navigationGroup = 'Manajemen User';
 
     public static function form(Form $form): Form
     {
@@ -38,11 +39,13 @@ class SalesResource extends Resource
                     ->unique(ignoreRecord: true),
 
                 TextInput::make('password')
-                    ->required()
+                    ->required(fn($livewire) => $livewire instanceof \Filament\Resources\Pages\CreateRecord)
                     ->password()
                     ->dehydrateStateUsing(fn($state) => \Hash::make($state))
                     ->dehydrated(fn($state) => filled($state))
-                    ->label('Password'),
+                    ->label('Password')
+                    ->visible(fn($livewire) => $livewire instanceof \Filament\Resources\Pages\CreateRecord),
+
 
                 Hidden::make('role')
                     ->default('sales'),
@@ -70,12 +73,14 @@ class SalesResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
-            ]);
+            ])
+            ;
     }
 
     public static function getRelations(): array

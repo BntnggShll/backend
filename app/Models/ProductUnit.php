@@ -1,0 +1,52 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class ProductUnit extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'product_id',
+        'unit_id',
+        'parent_id',
+        'conversion_rate',
+        'harga_jual',
+        'is_base_unit',
+        'min_stock_level',
+    ];
+
+    protected $casts = [
+        'is_base_unit' => 'boolean',
+    ];
+
+    public function product(): BelongsTo
+    {
+        return $this->belongsTo(Product::class);
+    }
+
+    public function unit(): BelongsTo
+    {
+        return $this->belongsTo(Unit::class);
+    }
+
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(ProductUnit::class, 'parent_id');
+    }
+
+    public function children(): HasMany
+    {
+        return $this->hasMany(ProductUnit::class, 'parent_id');
+    }
+
+    public function stockMovements(): HasMany
+    {
+        return $this->hasMany(StockMovement::class);
+    }
+}
