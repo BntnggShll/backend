@@ -17,7 +17,7 @@ return new class extends Migration
             $table->Integer('unit_id');
             $table->Integer('parent_id')->nullable();
             $table->unsignedInteger('conversion_rate')->default(1);
-            $table->decimal('harga_jual', 15, 2);
+            $table->decimal('harga_jual', 8, 2);
             $table->boolean('is_base_unit')->default(false);
             $table->integer('min_stock_level')->default(0);
             $table->timestamps();

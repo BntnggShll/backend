@@ -1,35 +1,29 @@
 <?php
-
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
-    /**
-     * Run the migrations.
-     */
+return new class extends Migration {
     public function up(): void
     {
         Schema::create('payments', function (Blueprint $table) {
             $table->integer('id')->autoIncrement();
-            $table->Integer('order_id');
-            $table->decimal('jumlah', 8, 2);
-            $table->enum('metode_pembayaran', ['transfer', 'cod', 'ewallet']);
-            $table->enum('status_pembayaran', ['menunggu', 'selesai', 'gagal'])->default('menunggu');
-            $table->date('tanggal_transaksi');
+            $table->integer('order_id');
+            $table->string('midtrans_transaction_id', 100)->nullable();
+            $table->string('midtrans_order_id', 100)->unique();
+            $table->string('snap_token', 255)->nullable();
+            $table->decimal('total_pembayaran', 8, 2);
+            $table->string('metode_pembayaran', 50)->nullable();
+            $table->enum('status_pembayaran', ['menunggu', 'diproses', 'selesai', 'gagal', 'kadaluarsa'])->default('menunggu');
+            $table->json('raw_response')->nullable();
             $table->timestamps();
-        
-            $table->foreign('order_id')->references('id')->on('orders')->onDelete('cascade');
-        });
 
+            $table->foreign('order_id')->references('id')->on('orders');
+        });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        //
+        Schema::dropIfExists('payments');
     }
 };

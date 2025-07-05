@@ -14,8 +14,4 @@ class Sales extends Model
     public function salesTasks() {
         return $this->hasMany(SalesTask::class);
     }
-
-    public function salesTransactions() {
-        return $this->hasMany(SalesTransaction::class);
-    }
 }

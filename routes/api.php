@@ -29,7 +29,7 @@ Route::apiResource('order-items', OrderItemsController::class);
 Route::apiResource('shipments', ShipmentsController::class);
 
 // Payments
-Route::apiResource('payments', PaymentsController::class);
+Route::post('/payment/create', [PaymentsController::class, 'create'])->name('payment.create');
 
 // Users
 Route::apiResource('users', UserController::class);

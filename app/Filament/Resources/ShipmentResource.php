@@ -22,6 +22,7 @@ class ShipmentResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-truck';
     protected static ?string $navigationGroup = 'Manajemen Produk';
+    protected static ?string $navigationLabel = 'Pesanan dan Pengiriman'; 
 
     public static function form(Form $form): Form
     {
@@ -48,9 +49,9 @@ class ShipmentResource extends Resource
                 TextColumn::make('perkiraan_pengiriman'),
                 BadgeColumn::make('status_pengiriman')
                     ->colors([
-                        'diproses' => 'warning',
-                        'dikirim' => 'info',
-                        'diterima' => 'success',
+                        'warning' => 'diproses',
+                        'info' => 'dikirim',
+                        'success' => 'diterima',
                     ]),
                 TextColumn::make('created_at')
                     ->label('Dibuat'),

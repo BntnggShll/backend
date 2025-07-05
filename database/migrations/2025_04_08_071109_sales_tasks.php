@@ -17,11 +17,9 @@ return new class extends Migration
             $table->enum('jenis_tugas', ['pengantaran', 'promosi']);
             $table->text('deskripsi')->nullable();
             $table->enum('status', ['diproses', 'selesai'])->default('diproses');
-            $table->Integer('shipment_id')->nullable();
             $table->timestamps();
         
             $table->foreign('sales_id')->references('id')->on('users')->onDelete('cascade');
-            $table->foreign('shipment_id')->references('id')->on('shipments')->onDelete('set null');
         });
     }
 

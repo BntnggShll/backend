@@ -9,7 +9,7 @@ class SalesTask extends Model
 {
     use HasFactory;
     protected $table = 'sales_tasks';
-    protected $fillable = ['sales_id', 'jenis_tugas', 'deskripsi', 'status', 'shipment_id'];
+    protected $fillable = ['sales_id', 'jenis_tugas', 'deskripsi', 'status'];
 
     public function sales() {
         return $this->belongsTo(Sales::class);

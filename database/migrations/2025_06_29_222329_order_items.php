@@ -11,17 +11,18 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('shipments', function (Blueprint $table) {
+        Schema::create('order_items', function (Blueprint $table) {
             $table->integer('id')->autoIncrement();
             $table->Integer('order_id');
-            $table->date('perkiraan_pengiriman')->nullable();
-            $table->enum('status_pengiriman',['diproses','dikirim','diterima'])->nullable()->default('diproses');
+            $table->Integer('product_unit_id');
+            $table->smallInteger('jumlah' )->unsigned()->default(1);
+            $table->decimal('harga', 8, 2);
             $table->timestamps();
         
             $table->foreign('order_id')->references('id')->on('orders')->onDelete('cascade');
+            $table->foreign('product_unit_id')->references('id')->on('product_units')->onDelete('cascade');
         });
-        
-    }
+        }
 
     /**
      * Reverse the migrations.

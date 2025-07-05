@@ -61,8 +61,6 @@ class UserResource extends Resource
                     ])
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -87,10 +85,6 @@ class UserResource extends Resource
         ];
     }
     public static function canCreate(): bool
-    {
-        return false;
-    }
-    public static function canEdit(Model $record): bool
     {
         return false;
     }

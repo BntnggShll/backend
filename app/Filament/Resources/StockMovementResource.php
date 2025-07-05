@@ -43,9 +43,6 @@ class StockMovementResource extends Resource
                         'out' => 'Stok Keluar'
                     ])
                     ->required(),
-                
-                Forms\Components\Textarea::make('keterangan')
-                    ->columnSpanFull(),
             ]);
     }
 
@@ -67,7 +64,6 @@ class StockMovementResource extends Resource
                         'success' => 'in',
                         'danger' => 'out',
                     ]),
-                Tables\Columns\TextColumn::make('keterangan')->limit(50),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->label('Waktu'),

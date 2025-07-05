@@ -66,7 +66,7 @@ class SalesResource extends Resource
                     ->sortable(),
                 TextColumn::make('created_at')
                     ->sortable()
-                    ->label('Tanggal bergabungy')
+                    ->label('Tanggal bergabung')
             ])
             ->filters([
                 //
