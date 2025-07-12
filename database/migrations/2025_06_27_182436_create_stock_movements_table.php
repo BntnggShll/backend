@@ -13,12 +13,14 @@ return new class extends Migration
     {
         Schema::create('stock_movements', function (Blueprint $table) {
             $table->integer('id')->autoIncrement();
+            $table->integer('sales_id')->nullable();
             $table->integer('product_unit_id');
             $table->integer('quantity'); 
             $table->enum('type', ['in', 'out']);
             $table->timestamps();
 
             $table->foreign('product_unit_id')->references('id')->on('product_units')->onDelete('cascade');
+            $table->foreign('sales_id')->references('id')->on('users')->onDelete('cascade');
         });
     }
 

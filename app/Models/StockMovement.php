@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Filament\Notifications\Notification;
+use Users;
 
 class StockMovement extends Model
 {
@@ -17,11 +18,15 @@ class StockMovement extends Model
         'product_unit_id',
         'quantity',
         'type',
+        'sales_id',
     ];
 
     public function productUnit(): BelongsTo
     {
         return $this->belongsTo(ProductUnit::class);
+    }
+    public function stock_sales(): BelongsTo{
+        return $this->belongsTo(User::class,'sales_id');
     }
     protected static function boot()
     {

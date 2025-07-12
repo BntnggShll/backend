@@ -14,14 +14,13 @@ return new class extends Migration
         Schema::create('shipments', function (Blueprint $table) {
             $table->integer('id')->autoIncrement();
             $table->Integer('order_id');
-            $table->Integer('sales_task_id');
+            $table->Integer('sales_id');
             $table->date('perkiraan_pengiriman')->nullable();
             $table->enum('status_pengiriman',['diproses','dikirim','diterima'])->nullable()->default('diproses');
-            $table->decimal('biaya_pengiriman',8,2);
             $table->timestamps();
         
             $table->foreign('order_id')->references('id')->on('orders')->onDelete('cascade');
-            $table->foreign('sales_task_id')->references('id')->on('sales_tasks')->onDelete('cascade');
+            $table->foreign('sales_id')->references('id')->on('users')->onDelete('cascade');
         });
         
     }

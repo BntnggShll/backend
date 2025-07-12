@@ -12,7 +12,7 @@ return new class extends Migration {
             $table->string('midtrans_transaction_id', 100)->nullable();
             $table->string('midtrans_order_id', 100)->unique();
             $table->string('snap_token', 255)->nullable();
-            $table->decimal('total_pembayaran', 8, 2);
+            $table->unsignedInteger('total_pembayaran')->default(0);
             $table->string('metode_pembayaran', 50)->nullable();
             $table->enum('status_pembayaran', ['menunggu', 'diproses', 'selesai', 'gagal', 'kadaluarsa'])->default('menunggu');
             $table->json('raw_response')->nullable();

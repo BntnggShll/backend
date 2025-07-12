@@ -18,6 +18,8 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use App\Http\Middleware\CheckSalesRole;
+use App\Filament\Pages\EditProfile; // <-- Import halaman profile
+use Filament\Navigation\UserMenuItem; // <-- Import UserMenuItem
 
 class SalesPanelProvider extends PanelProvider
 {
@@ -26,6 +28,7 @@ class SalesPanelProvider extends PanelProvider
         return $panel
             ->id('sales')
             ->path('sales')
+            ->login()
             ->colors([
                 'primary' => Color::Amber,
             ])
@@ -36,8 +39,7 @@ class SalesPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Sales/Widgets'), for: 'App\\Filament\\Sales\\Widgets')
             ->widgets([
-                Widgets\AccountWidget::class,
-                Widgets\FilamentInfoWidget::class,
+                
             ])
             ->middleware([
                 EncryptCookies::class,
@@ -49,10 +51,21 @@ class SalesPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
-                CheckSalesRole::class,
+                
             ])
             ->authMiddleware([
                 Authenticate::class,
+                CheckSalesRole::class,
+            ])
+            ->pages([
+                EditProfile::class, // Daftarkan halaman profil Anda di sini
+            ])
+            ->userMenuItems([
+                'profile' => UserMenuItem::make()
+                    ->label('Profil Saya')
+                    ->url(fn (): string => EditProfile::getUrl())
+                    ->icon('heroicon-o-user-circle'),
+                // Anda bisa menambahkan item menu lain di sini, seperti Logout
             ]);
     }
 }

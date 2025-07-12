@@ -11,15 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('sales_tasks', function (Blueprint $table) {
+        Schema::create('sales_stocks', function (Blueprint $table) {
             $table->integer('id')->autoIncrement();
-            $table->Integer('sales_id');
-            $table->enum('jenis_tugas', ['pengantaran', 'promosi']);
-            $table->text('deskripsi')->nullable();
-            $table->enum('status', ['diproses', 'selesai'])->default('diproses');
+            $table->integer('sales_id');
+            $table->integer('product_unit_id');
+            $table->unsignedInteger('harga_jual')->default(0);
+            $table->integer('quantity');
+            $table->enum('status',['in','out']);
             $table->timestamps();
-        
+
             $table->foreign('sales_id')->references('id')->on('users')->onDelete('cascade');
+            $table->foreign('product_unit_id')->references('id')->on('product_units')->onDelete('cascade');
         });
     }
 
@@ -28,6 +30,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        //
+        Schema::dropIfExists('sales_stocks');
     }
 };

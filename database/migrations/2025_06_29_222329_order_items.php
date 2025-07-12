@@ -16,7 +16,7 @@ return new class extends Migration
             $table->Integer('order_id');
             $table->Integer('product_unit_id');
             $table->smallInteger('jumlah' )->unsigned()->default(1);
-            $table->decimal('harga', 8, 2);
+            $table->unsignedInteger('harga')->default(0);
             $table->timestamps();
         
             $table->foreign('order_id')->references('id')->on('orders')->onDelete('cascade');

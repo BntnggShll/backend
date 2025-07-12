@@ -11,9 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('units', function (Blueprint $table) {
-            $table->integer('id')->autoIncrement();
-            $table->string('nama_unit',100)->unique();
+        Schema::create('shipping_rates', function (Blueprint $table) {
+            $table->integer('id')->autoIncrement()->primary();
+            $table->string('nama_daerah');
+            $table->unsignedInteger('cost')->default(0);
             $table->timestamps();
         });
     }
@@ -23,6 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('units');
+        Schema::dropIfExists('shipping_rates');
     }
 };

@@ -9,9 +9,9 @@ class Reseller extends Model
 {
     use HasFactory;
     protected $table = 'resellers';
-    protected $fillable = ['nama_toko', 'no_hp', 'status', 'user_id'];
+    protected $fillable = ['nama_toko', 'status', 'user_id'];
 
     public function user() {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class,'id','user_id');
     }
 }

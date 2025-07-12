@@ -24,7 +24,7 @@ class UserResource extends Resource
     protected static ?string $model = User::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-user';
-    protected static ?string $navigationGroup = 'Manajemen User';
+    protected static ?string $navigationGroup = 'Manajemen Pengguna';
 
     public static function form(Form $form): Form
     {
@@ -41,13 +41,12 @@ class UserResource extends Resource
                 TextColumn::make('name')
                     ->sortable()
                     ->searchable(),
+                TextColumn::make('no_telp')
+                    ->label('No Telepone'),
                 TextColumn::make('email')
                     ->sortable()
                     ->searchable(),
-                TextColumn::make('role')
-                    ->sortable(),
                 TextColumn::make('alamat')
-                    ->sortable()
                     ->searchable(),
                 TextColumn::make('created_at')
                     ->sortable()
@@ -88,12 +87,16 @@ class UserResource extends Resource
     {
         return false;
     }
+    public static function canEdit(Model $record): bool
+    {
+        return false;
+    }
 
 
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->whereIn('role', ['customer', 'reseller']);
+            ->where('role', 'customer');
     }
 
 

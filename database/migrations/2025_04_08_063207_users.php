@@ -15,9 +15,11 @@ return new class extends Migration
             $table->integer('id')->autoIncrement();
             $table->string('name',100);
             $table->enum('role', ['admin','customer', 'sales', 'reseller'])->default('admin');
-            $table->string('alamat')->nullable();
+            $table->text('alamat')->nullable();
             $table->string('email',150)->unique();
             $table->string('password');
+            $table->string('image')->nullable();
+            $table->string('no_telp',15)->nullable();
             $table->rememberToken();
             $table->timestamps();
         });

@@ -13,14 +13,16 @@ use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Types\Relations\Role;
 
 class ResellerResource extends Resource
 {
     protected static ?string $model = Reseller::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
-    protected static ?string $navigationGroup = 'Manajemen User';
+    protected static ?string $navigationGroup = 'Manajemen Pengguna';
 
     public static function form(Form $form): Form
     {
@@ -36,11 +38,13 @@ class ResellerResource extends Resource
             ->columns([
                 TextColumn::make('user.name')
                     ->label('Nama'),
+                TextColumn::make('no_telp')
+                    ->label('No Telepone'),
                 TextColumn::make('no_hp'),
                 TextColumn::make('nama_toko'),
                 TextColumn::make('user.alamat')
                     ->label('Alamat'),
-                    BadgeColumn::make('status')
+                BadgeColumn::make('status')
                     ->colors([
                         'success' => 'aktif',
                         'danger' => 'tidak_aktif',
@@ -56,13 +60,6 @@ class ResellerResource extends Resource
             ])
             ->filters([
                 //
-            ])
-            ->actions([
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
             ]);
     }
 
@@ -84,5 +81,16 @@ class ResellerResource extends Resource
     public static function canCreate(): bool
     {
         return false;
+    }
+    public static function canEdit(Model $record): bool
+    {
+        return false;
+    }
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+        ->join('users', 'resellers.user_id', '=', 'users.id')
+        ->where('users.role', 'reseller')
+        ->select('resellers.*');
     }
 }

@@ -14,7 +14,8 @@ return new class extends Migration
         Schema::create('orders', function (Blueprint $table) {
             $table->integer('id')->autoIncrement();
             $table->Integer('user_id');
-            $table->decimal('total_harga', 8, 2);
+            $table->unsignedInteger( 'total_harga')->default(0);
+            $table->unsignedInteger('shipping_cost')->default(0);
             $table->timestamps();
         
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');

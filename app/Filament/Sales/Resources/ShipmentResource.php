@@ -1,29 +1,28 @@
 <?php
 
-namespace App\Filament\Resources;
+namespace App\Filament\Sales\Resources;
 
-use App\Filament\Resources\ShipmentResource\Pages;
-use App\Filament\Resources\ShipmentResource\RelationManagers;
+use App\Filament\Sales\Resources\ShipmentResource\Pages;
+use App\Filament\Sales\Resources\ShipmentResource\RelationManagers;
 use App\Models\Shipment;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Tables\Actions\Action;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Notification;
 
 class ShipmentResource extends Resource
 {
     protected static ?string $model = Shipment::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-truck';
-    protected static ?string $navigationGroup = 'Manajemen Produk';
-    protected static ?string $navigationLabel = 'Pesanan dan Pengiriman'; 
 
     public static function form(Form $form): Form
     {
@@ -37,35 +36,36 @@ class ShipmentResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('order.orderItems.product.nama_produk')
-                    ->label('Barang Dikirim')
-                    ->limit(30)
-                    ->wrap()
-                    ->searchable(),
                 TextColumn::make('order.user.name')
-                    ->label('Nama pembeli')
-                    ->searchable(),
+                ->label('Nama Cu    mer'),
+                TextColumn::make('order.user.alamat')
+                ->label('Alamat'),
+                TextColumn::make('order.user.no_telp')
+                ->label('No Telepone'),
+                TextColumn::make('order.user.email')
+                ->label('Email'),
                 TextColumn::make('order.total_harga')
-                    ->label('Total harga'),
+                ->label('Total Harga'),
+                TextColumn::make('order.shipping_cost')
+                ->label('Biaya Pengantaran'),
                 TextColumn::make('perkiraan_pengiriman'),
                 BadgeColumn::make('status_pengiriman')
                     ->colors([
                         'warning' => 'diproses',
                         'info' => 'dikirim',
-                        'success' => 'diterima',
+                        'success' => 'diterima'
                     ]),
-                TextColumn::make('created_at')
-                    ->label('Dibuat'),
-                TextColumn::make('updated_at')
-                    ->label('Diperbarui'),
             ])
             ->filters([
-                SelectFilter::make('status_pengiriman')
-                    ->options([
-                        'diproses' => 'Diproses',
-                        'dikirim' => 'Dikirim',
-                        'diterima' => 'Diterima',
-                    ])
+                //
+            ])
+            ->actions([
+               
+            ])
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make(),
+                ]),
             ]);
     }
 
@@ -83,6 +83,15 @@ class ShipmentResource extends Resource
             'create' => Pages\CreateShipment::route('/create'),
             'edit' => Pages\EditShipment::route('/{record}/edit'),
         ];
+    }
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+        $query->where('status_pengiriman', 'dikirim');
+        $user = auth()->user();
+        if ($user && $user->role === 'sales') {
+            $query->where('sales_id', $user->id);
+        }return $query;
     }
     public static function canCreate(): bool
     {

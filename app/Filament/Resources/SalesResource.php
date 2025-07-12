@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\SalesResource\Pages;
 use App\Filament\Resources\SalesResource\RelationManagers;
 use App\Models\Sales;
+use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
@@ -23,7 +24,7 @@ class SalesResource extends Resource
     protected static ?string $model = Sales::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-users';
-    protected static ?string $navigationGroup = 'Manajemen User';
+    protected static ?string $navigationGroup = 'Manajemen Pengguna';
 
     public static function form(Form $form): Form
     {

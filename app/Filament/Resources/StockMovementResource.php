@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\StockMovementResource\Pages;
 use App\Models\StockMovement;
+use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -25,24 +26,32 @@ class StockMovementResource extends Resource
         return $form
             ->schema([
                 Forms\Components\Select::make('product_unit_id')
-                    ->relationship('productUnit', 'id') 
-                    ->getOptionLabelFromRecordUsing(fn ($record) => "{$record->product->nama_produk} - {$record->unit->nama_unit}")
+                    ->relationship('productUnit', 'id')
+                    ->getOptionLabelFromRecordUsing(fn($record) => "{$record->product->nama_produk} - {$record->unit->nama_unit}")
                     ->searchable(['product.nama_produk', 'unit.nama_unit'])
                     ->preload()
                     ->required()
                     ->label('Produk dan Satuan'),
-
-                Forms\Components\TextInput::make('quantity')
-                    ->required()
-                    ->numeric()
-                    ->helperText('Gunakan angka negatif (-) untuk stok keluar.'),
-
                 Forms\Components\Select::make('type')
                     ->options([
                         'in' => 'Stok Masuk',
                         'out' => 'Stok Keluar'
                     ])
-                    ->required(),
+                    ->required()
+                    ->reactive(),
+                Forms\Components\Select::make('sales_id')
+                    ->options(
+                        User::where('role','sales')->pluck('name','id')
+                    )
+                    ->label('Sales')
+                    ->searchable(['stock_sales.name'])
+                    ->preload()
+                    ->required()
+                    ->visible(fn($get) => $get('type') === 'out'),
+                Forms\Components\TextInput::make('quantity')
+                    ->required()
+                    ->numeric()
+                    ->helperText('Gunakan angka negatif (-) untuk stok keluar.'),
             ]);
     }
 
@@ -52,7 +61,6 @@ class StockMovementResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('productUnit.product.nama_produk')
                     ->label('Produk')
-                    ->searchable()
                     ->searchable(),
                 Tables\Columns\TextColumn::make('productUnit.unit.nama_unit')
                     ->label('Satuan')
@@ -64,6 +72,8 @@ class StockMovementResource extends Resource
                         'success' => 'in',
                         'danger' => 'out',
                     ]),
+                Tables\Columns\TextColumn::make('stock_sales.name')
+                    ->label('Nama Sales'),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->label('Waktu'),
@@ -86,7 +96,7 @@ class StockMovementResource extends Resource
                 ]),
             ]);
     }
-    
+
     public static function getPages(): array
     {
         return [
@@ -94,5 +104,5 @@ class StockMovementResource extends Resource
             'create' => Pages\CreateStockMovement::route('/create'),
             'edit' => Pages\EditStockMovement::route('/{record}/edit'),
         ];
-    }    
+    }
 }

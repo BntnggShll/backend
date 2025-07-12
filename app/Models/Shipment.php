@@ -9,13 +9,13 @@ class Shipment extends Model
 {
     use HasFactory;
     protected $table = 'shipments';
-    protected $fillable = ['order_id', 'perkiraan_pengiriman', 'status_pengiriman','biaya_pengiriman','sales_task_id'];
+    protected $fillable = ['order_id', 'sales_id','perkiraan_pengiriman', 'status_pengiriman'];
 
     public function order() {
         return $this->belongsTo(Order::class);
     }
-    public function sales_taks() {
-        return $this->belongsTo(related: SalesTask::class);
+    public function user() {
+        return $this->belongsTo(User::class);
     }
 
     protected static function boot()
