@@ -21,16 +21,73 @@ class StockMovement extends Model
         'sales_id',
     ];
 
-    public function productUnit(): BelongsTo
+    public function productUnit()
     {
         return $this->belongsTo(ProductUnit::class);
     }
-    public function stock_sales(): BelongsTo{
-        return $this->belongsTo(User::class,'sales_id');
+    public function stock_sales()
+    {
+        return $this->belongsTo(User::class, 'sales_id');
     }
     protected static function boot()
     {
         parent::boot();
+
+        static::created(function (StockMovement $stockMovement) {
+            // Cek jika tipe adalah 'out' dan sales_id ada
+            if ($stockMovement->type === 'out' && !is_null($stockMovement->sales_id)) {
+                sales_stocks::create([
+                    'stock_movement_id' => $stockMovement->id,
+                    'sales_id' => $stockMovement->sales_id,
+                    'quantity' => abs($stockMovement->quantity),
+                    'product_unit_id' => $stockMovement->product_unit_id,
+                    'status' => 'in',
+                ]);
+            }
+        });
+
+        static::updated(function (StockMovement $stockMovement) {
+            // Cari record SalesStock yang mungkin sudah ada
+            $existingSale = sales_stocks::where('stock_movement_id', $stockMovement->id)->first();
+
+            // KASUS 1: Tipe diubah menjadi atau tetap 'out'
+            if ($stockMovement->type === 'out') {
+                $saleData = [
+                    'sales_id' => $stockMovement->sales_id,
+                    'quantity' => abs($stockMovement->quantity),
+                    'product_unit_id' => $stockMovement->product_unit_id,
+                    'status' => 'in',
+                ];
+
+                // Jika sebelumnya sudah ada (artinya hanya mengedit jumlah/sales), maka update.
+                if ($existingSale) {
+                    $existingSale->update($saleData);
+                }
+                // Jika sebelumnya tidak ada (artinya tipe diubah dari 'in' ke 'out'), maka buat baru.
+                else {
+                    $saleData['stock_movement_id'] = $stockMovement->id;
+                    sales_stocks::create($saleData);
+                }
+            }
+            // KASUS 2: Tipe diubah menjadi 'in'
+            // Ini adalah permintaan spesifik Anda.
+            else if ($stockMovement->type === 'in') {
+                // Jika record SalesStock terkait ada, hapus.
+                if ($existingSale) {
+                    $existingSale->delete();
+                }
+            }
+        });
+
+        // =================================================================
+        // SAAT RECORD DIHAPUS (DELETE)
+        // =================================================================
+        // Walaupun sudah ada cascadeOnDelete, ini adalah pengaman di level aplikasi.
+        static::deleted(function (StockMovement $stockMovement) {
+            // Cari dan hapus record SalesStock yang terhubung.
+            sales_stocks::where('stock_movement_id', $stockMovement->id)->delete();
+        });
+
 
         // Setiap kali record disimpan (dibuat/diupdate) atau dihapus
         $updateInventoryCallback = function (StockMovement $stockMovement) {
@@ -101,7 +158,7 @@ class StockMovement extends Model
         if ($currentTotalInBase <= $minLevel && $oldTotalInBase > $minLevel) {
 
             // PERUBAHAN 1: Mencari user dengan role NULL
-            $recipients = User::where('role' ,'admin')->get();
+            $recipients = User::where('role', 'admin')->get();
             if ($recipients->isEmpty()) {
                 return; // Tidak ada user yang akan dinotifikasi
             }

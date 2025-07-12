@@ -25,27 +25,27 @@ class ProductUnit extends Model
         'is_base_unit' => 'boolean',
     ];
 
-    public function product(): BelongsTo
+    public function product()
     {
         return $this->belongsTo(Product::class);
     }
 
-    public function unit(): BelongsTo
+    public function unit()
     {
         return $this->belongsTo(Unit::class);
     }
 
-    public function parent(): BelongsTo
+    public function parent()
     {
         return $this->belongsTo(ProductUnit::class, 'parent_id');
     }
 
-    public function children(): HasMany
+    public function children()
     {
         return $this->hasMany(ProductUnit::class, 'parent_id');
     }
 
-    public function stockMovements(): HasMany
+    public function stockMovements()
     {
         return $this->hasMany(StockMovement::class);
     }

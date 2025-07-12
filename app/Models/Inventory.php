@@ -12,7 +12,7 @@ class Inventory extends Model
 
     protected $fillable = ['product_unit_id', 'quantity'];
 
-    public function productUnit(): BelongsTo
+    public function productUnit()
     {
         return $this->belongsTo(ProductUnit::class);
     }

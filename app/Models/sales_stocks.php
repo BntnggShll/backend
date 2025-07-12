@@ -10,10 +10,19 @@ class sales_stocks extends Model
     use HasFactory;
 
     protected $table = 'sales_stocks';
-    protected $fillable = ['sale_id','nama_produk','nam_unit','harga_jual','quantity','status'];
+    protected $fillable = ['sales_id','quantity','status','product_unit_id','stock_movement_id'];
 
     public function sales()
     {
         return $this->belongsTo(User::class);
     }
+    public function productUnit()
+    {
+        return $this->belongsTo(ProductUnit::class);
+    }
+    public function stockmovement()
+    {
+        return $this->belongsTo(StockMovement::class);
+    }
+    
 }

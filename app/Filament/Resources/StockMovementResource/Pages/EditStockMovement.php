@@ -16,4 +16,15 @@ class EditStockMovement extends EditRecord
             Actions\DeleteAction::make(),
         ];
     }
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        // Logika yang sama persis seperti di halaman Create
+        if (isset($data['type']) && $data['type'] === 'out' && isset($data['quantity'])) {
+            $data['quantity'] = -abs((int)$data['quantity']);
+        } else if (isset($data['quantity'])) {
+             $data['quantity'] = abs((int)$data['quantity']);
+        }
+
+        return $data;
+    }
 }

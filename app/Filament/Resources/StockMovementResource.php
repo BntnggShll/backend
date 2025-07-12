@@ -11,6 +11,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Contracts\Validation\Rule;
 
 class StockMovementResource extends Resource
 {
@@ -31,6 +32,7 @@ class StockMovementResource extends Resource
                     ->searchable(['product.nama_produk', 'unit.nama_unit'])
                     ->preload()
                     ->required()
+                    ->reactive()
                     ->label('Produk dan Satuan'),
                 Forms\Components\Select::make('type')
                     ->options([
@@ -41,7 +43,7 @@ class StockMovementResource extends Resource
                     ->reactive(),
                 Forms\Components\Select::make('sales_id')
                     ->options(
-                        User::where('role','sales')->pluck('name','id')
+                        User::where('role', 'sales')->pluck('name', 'id')
                     )
                     ->label('Sales')
                     ->searchable(['stock_sales.name'])
@@ -51,7 +53,59 @@ class StockMovementResource extends Resource
                 Forms\Components\TextInput::make('quantity')
                     ->required()
                     ->numeric()
-                    ->helperText('Gunakan angka negatif (-) untuk stok keluar.'),
+                    ->helperText('Masukkan jumlah stok. Sistem akan menyesuaikan otomatis.')
+                    ->live(onBlur: true)
+                    ->afterStateUpdated(fn($state, $set) => $set('quantity', abs($state)))
+                    ->rule(function ($get) {
+                        return new class($get) implements Rule {
+                            private $get;
+    
+                            public function __construct($get)
+                            {
+                                $this->get = $get;
+                            }
+    
+                            public function passes($attribute, $value)
+                            {
+                                $get = $this->get;
+    
+                                // 1. Hanya jalankan validasi ini jika tipe transaksi adalah 'out'
+                                if ($get('type') !== 'out') {
+                                    return true;
+                                }
+    
+                                $productUnitId = $get('product_unit_id');
+                                if (!$productUnitId) {
+                                    return true; // Biarkan rule 'required' yang menangani ini
+                                }
+    
+                                // 2. Ambil stok saat ini dari tabel ringkasan 'inventories'
+                                $currentStock = \App\Models\Inventory::where('product_unit_id', $productUnitId)
+                                                    ->first()?->quantity ?? 0;
+    
+                                // 3. Cek jika stok yang diminta melebihi yang tersedia
+                                if (abs($value) > $currentStock) {
+                                    return false; // Gagal validasi
+                                }
+    
+                                return true; // Lolos validasi
+                            }
+    
+                            public function message()
+                            {
+                                $get = $this->get;
+                                $productUnitId = $get('product_unit_id');
+                                $currentStock = \App\Models\Inventory::where('product_unit_id', $productUnitId)
+                                                    ->first()?->quantity ?? 0;
+    
+                                if ($currentStock <= 0) {
+                                    return 'Stok untuk produk ini sudah habis (0).';
+                                }
+    
+                                return 'Jumlah keluar tidak boleh melebihi stok saat ini (' . $currentStock . ').';
+                            }
+                        };
+                    }),
             ]);
     }
 
@@ -66,7 +120,8 @@ class StockMovementResource extends Resource
                     ->label('Satuan')
                     ->badge(),
                 Tables\Columns\TextColumn::make('quantity')
-                    ->numeric(),
+                    ->numeric()
+                    ->label('Kuantitas'),
                 Tables\Columns\BadgeColumn::make('type')
                     ->colors([
                         'success' => 'in',

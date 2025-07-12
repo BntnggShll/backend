@@ -15,11 +15,12 @@ return new class extends Migration
             $table->integer('id')->autoIncrement();
             $table->integer('sales_id');
             $table->integer('product_unit_id');
-            $table->unsignedInteger('harga_jual')->default(0);
             $table->integer('quantity');
             $table->enum('status',['in','out']);
+            $table->integer('stock_movement_id')->nullable();
             $table->timestamps();
-
+            
+            $table->foreign('stock_movement_id')->references('id')->on('stock_movement')->onDelete('cascade');
             $table->foreign('sales_id')->references('id')->on('users')->onDelete('cascade');
             $table->foreign('product_unit_id')->references('id')->on('product_units')->onDelete('cascade');
         });
