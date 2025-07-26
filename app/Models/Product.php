@@ -95,7 +95,7 @@ class Product extends Model
 
         return [
             'total_in_base' => $totalInBase,
-            'display' => $displayString ?: '0 ' . $baseUnit->unit->nama_unit,
+            'display' => $displayString ?: null,
             'conversion_factors' => $conversionFactors,
         ];
     }

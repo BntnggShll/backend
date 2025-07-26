@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('shipments', function (Blueprint $table) {
             $table->integer('id')->autoIncrement();
             $table->Integer('order_id');
-            $table->Integer('sales_id');
+            $table->Integer('sales_id')->nullable();
             $table->date('perkiraan_pengiriman')->nullable();
             $table->enum('status_pengiriman',['diproses','dikirim','diterima'])->nullable()->default('diproses');
             $table->timestamps();

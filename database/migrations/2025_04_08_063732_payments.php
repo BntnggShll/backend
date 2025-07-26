@@ -10,7 +10,7 @@ return new class extends Migration {
             $table->integer('id')->autoIncrement();
             $table->integer('order_id');
             $table->string('midtrans_transaction_id', 100)->nullable();
-            $table->string('midtrans_order_id', 100)->unique();
+            $table->string('midtrans_order_id', 100)->unique()->nullable();
             $table->string('snap_token', 255)->nullable();
             $table->unsignedInteger('total_pembayaran')->default(0);
             $table->string('metode_pembayaran', 50)->nullable();

@@ -15,30 +15,38 @@ use App\Http\Controllers\SalesTransactionsController;
 use App\Http\Controllers\SalesTasksController;
 use App\Http\Controllers\ResellersController;
 use App\Http\Controllers\LoginController;
-
+use Illuminate\Foundation\Auth\EmailVerificationRequest;
 // Products
-Route::apiResource('products', ProductsController::class);
+Route::get('/products', [ProductsController::class,'index']);
+Route::get('/stok', [ProductsController::class,'stok']);
+Route::get('/products/{id}', [ProductsController::class, 'show']);
 
 // Orders
-Route::apiResource('orders', OrdersController::class);
+Route::middleware('auth:sanctum')->post('/orders', [OrdersController::class, 'store']);
 
 // Order Items
-Route::apiResource('order-items', OrderItemsController::class);
+Route::apiResource('/order-items', OrderItemsController::class);
 
 // Shipments
-Route::apiResource('shipments', ShipmentsController::class);
+Route::apiResource('/shipments', ShipmentsController::class);
 
 // Payments
 Route::post('/payment/create', [PaymentsController::class, 'create'])->name('payment.create');
 
 // Users
-Route::apiResource('users', UserController::class);
+Route::apiResource('/users', UserController::class);
 
 //Register
-Route::post('/sales/register', [RegisterController::class, 'register_sales']);
 Route::post('/customer/register', [RegisterController::class, 'register_customer']);
-Route::post('/reselles/register', [RegisterController::class, 'register_reseller']);
 
+Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
+    $request->fulfill();
+    return response()->json(['message' => 'Email berhasil diverifikasi!']);
+})->middleware(['signed'])->name('verification.verify');
+
+Route::post('/email/resend-verification', [RegisterController::class, 'resendVerificationEmail'])
+    ->middleware('throttle:6,1') // Batasi agar tidak di-spam
+    ->name('verification.resend');  
 // Sales
 Route::apiResource('sales', SalesController::class);
 
@@ -52,4 +60,14 @@ Route::apiResource('sales-tasks', SalesTasksController::class);
 Route::apiResource('resellers', ResellersController::class);
 
 // Login
+
 Route::post('/login',[LoginController::class,'login']);
+
+
+Route::post('/cost',[ShipmentsController::class,'cost']);
+// routes/api.php
+Route::get('/nama_daerah', function () {
+    return \App\Models\ShippingRates::select('id', 'nama_daerah')->get();
+});
+
+

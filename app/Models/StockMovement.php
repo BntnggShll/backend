@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Filament\Notifications\Notification;
+use Illuminate\Validation\ValidationException;
 use Users;
 
 class StockMovement extends Model
@@ -33,59 +34,75 @@ class StockMovement extends Model
     {
         parent::boot();
 
-        static::created(function (StockMovement $stockMovement) {
-            // Cek jika tipe adalah 'out' dan sales_id ada
-            if ($stockMovement->type === 'out' && !is_null($stockMovement->sales_id)) {
-                sales_stocks::create([
-                    'stock_movement_id' => $stockMovement->id,
-                    'sales_id' => $stockMovement->sales_id,
-                    'quantity' => abs($stockMovement->quantity),
-                    'product_unit_id' => $stockMovement->product_unit_id,
-                    'status' => 'in',
-                ]);
-            }
-        });
+        $validationCallback = function (StockMovement $stockMovement) {
+            if ($stockMovement->type === 'out') {
+                $inventory = Inventory::where('product_unit_id', $stockMovement->product_unit_id)->first();
+                $currentStock = $inventory ? $inventory->quantity : 0;
+                $effectiveStock = $currentStock;
 
-        static::updated(function (StockMovement $stockMovement) {
-            // Cari record SalesStock yang mungkin sudah ada
+                // Jika sedang mengupdate, tambahkan kembali nilai lama untuk perhitungan
+                if ($stockMovement->exists) { // $exists bernilai true jika model sudah ada di DB
+                    $effectiveStock += abs($stockMovement->getOriginal('quantity'));
+                }
+
+                if (abs($stockMovement->quantity) > $effectiveStock) {
+                    throw ValidationException::withMessages([
+                        'quantity' => 'Jumlah keluar tidak boleh melebihi stok yang tersedia (' . $effectiveStock . ').',
+                    ]);
+                }
+            }
+        };
+
+        static::creating($validationCallback);
+        static::updating($validationCallback);
+
+
+        static::saved(function (StockMovement $stockMovement) {
+            // Cari record SalesStock yang terhubung melalui ID
             $existingSale = sales_stocks::where('stock_movement_id', $stockMovement->id)->first();
 
-            // KASUS 1: Tipe diubah menjadi atau tetap 'out'
-            if ($stockMovement->type === 'out') {
+            // KASUS 1: Pergerakan stok adalah 'out' ke seorang sales
+            if ($stockMovement->type === 'out' && !is_null($stockMovement->sales_id)) {
                 $saleData = [
                     'sales_id' => $stockMovement->sales_id,
-                    'quantity' => abs($stockMovement->quantity),
                     'product_unit_id' => $stockMovement->product_unit_id,
+                    'quantity' => abs($stockMovement->quantity), // Stok sales bertambah
                     'status' => 'in',
                 ];
 
-                // Jika sebelumnya sudah ada (artinya hanya mengedit jumlah/sales), maka update.
-                if ($existingSale) {
-                    $existingSale->update($saleData);
-                }
-                // Jika sebelumnya tidak ada (artinya tipe diubah dari 'in' ke 'out'), maka buat baru.
-                else {
-                    $saleData['stock_movement_id'] = $stockMovement->id;
-                    sales_stocks::create($saleData);
-                }
+                // Jika record SalesStock sudah ada, update. Jika belum, buat baru.
+                // updateOrCreate akan menangani kedua kasus ini dengan cerdas.
+                sales_stocks::updateOrCreate(
+                    ['stock_movement_id' => $stockMovement->id], // Kunci untuk mencari
+                    $saleData  // Data untuk diupdate atau dibuat
+                );
             }
-            // KASUS 2: Tipe diubah menjadi 'in'
-            // Ini adalah permintaan spesifik Anda.
-            else if ($stockMovement->type === 'in') {
-                // Jika record SalesStock terkait ada, hapus.
+            // KASUS 2: Tipe diubah menjadi 'in' atau tidak berhubungan dengan sales
+            else {
+                // Jika record SalesStock terkait ada (misal: sebelumnya 'out' lalu diubah jadi 'in'), hapus.
                 if ($existingSale) {
                     $existingSale->delete();
                 }
             }
+
+            // SELALU UPDATE INVENTARIS GUDANG UTAMA
+            // Pastikan relasi sudah di-load
+            if ($stockMovement->relationLoaded('productUnit')) {
+                self::updateInventoryFor($stockMovement->productUnit);
+            } else {
+                self::updateInventoryFor($stockMovement->load('productUnit')->productUnit);
+            }
         });
 
-        // =================================================================
-        // SAAT RECORD DIHAPUS (DELETE)
-        // =================================================================
-        // Walaupun sudah ada cascadeOnDelete, ini adalah pengaman di level aplikasi.
         static::deleted(function (StockMovement $stockMovement) {
-            // Cari dan hapus record SalesStock yang terhubung.
+            // Hapus record SalesStock yang terhubung.
+            // Sebenarnya sudah ditangani `cascadeOnDelete`, tapi ini sebagai pengaman.
             sales_stocks::where('stock_movement_id', $stockMovement->id)->delete();
+    
+            // UPDATE INVENTARIS GUDANG UTAMA SETELAH DIHAPUS
+            if ($stockMovement->productUnit) {
+                self::updateInventoryFor($stockMovement->productUnit);
+            }
         });
 
 

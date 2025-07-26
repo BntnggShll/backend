@@ -16,6 +16,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\Auth;
 
 
 class OrdersResource extends Resource
@@ -37,47 +38,41 @@ class OrdersResource extends Resource
     {
         return $table
         ->columns([
-            TextColumn::make('user.name')
-                ->label('Nama Pelanggan')
-                ->searchable(),
-
-            TextColumn::make('orderItems')
-                ->label('Detail Pesanan')
-                ->getStateUsing(function (\App\Models\Order $record): string {
-                    // Di sini, kita menerima $record, yaitu seluruh objek Order untuk baris ini.
-                    // Kita bisa dengan bebas mengakses relasi orderItems dari sini.
-                    return $record->orderItems->map(function ($item) {
-                        // Path yang benar sesuai kode Anda sebelumnya
-                        $productName = $item->productunit->product->nama_produk ?? 'N/A';
-                        $unitName = $item->productunit->unit->nama_unit ?? '';
-                        $quantity = $item->jumlah ?? 'N/A';
-                        $price = number_format($item->harga ?? 0, 0, ',', '.');
-                        
-                        return "• {$quantity} {$unitName} - {$productName} Rp {$price}";
-                    })->implode('<br>');
-                })
-                ->html()
-                ->searchable(query: function (Builder $query, string $search): Builder {
-                    // PERBAIKAN 2: Path di whereHas juga disesuaikan
-                    return $query->whereHas('orderItems.productunit.product', function ($query) use ($search) {
-                        $query->where('nama_produk', 'like', "%{$search}%");
-                    });
-                }),
-
-            TextColumn::make('total_harga')
-                ->label('Total Harga')
-                ->numeric(
-                    decimalPlaces: 0,
-                    decimalSeparator: ',',
-                    thousandsSeparator: '.'
-                )
-                ->prefix('Rp '),
+            TextColumn::make('id')
+            ->label('Id Order'),
+        TextColumn::make('orderItems.productunit.product.nama_produk')
+            ->label('Barang Dikirim')
+            ->limit(30)
+            ->wrap(),
+        TextColumn::make('user.name')
+            ->label('Nama pembeli')
+            ->searchable(),
+        TextColumn::make('total_harga')
+            ->label('Total Harga')
+            ->prefix('Rp '),
+        TextColumn::make('shipping_cost')
+            ->label('Biaya Pengiriman')
+            ->prefix('Rp '),
+        TextColumn::make('payments.metode_pembayaran')
+            ->label('Metode Pembayaran'),
+        BadgeColumn::make('payments.status_pembayaran')
+            ->colors([
+                'warning' => 'menunggu',
+                'info' => 'diproses',
+                'success' => 'selesai',
+                'danger' => 'gagal',
+                'gray' => 'kadaluarsa',
+            ])
+            ->label('Status Pengiriman'),
+        TextColumn::make('created_at')
+            ->label('Dipesan'),
+        TextColumn::make('updated_at')
+            ->label('Diperbarui'),
         ])
             ->filters([
                 //
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -109,10 +104,7 @@ class OrdersResource extends Resource
     }
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->with([
-            'user', 
-            'orderItems.productunit.product',
-            'orderItems.productunit.unit' 
-        ]);
+        return parent::getEloquentQuery()
+            ->where('user_id', Auth::id());   
     }
 }

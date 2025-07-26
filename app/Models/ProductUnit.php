@@ -29,6 +29,10 @@ class ProductUnit extends Model
     {
         return $this->belongsTo(Product::class);
     }
+    public function orderitem()
+    {
+        return $this->hasMany(OrderItem::class);
+    }
 
     public function unit()
     {

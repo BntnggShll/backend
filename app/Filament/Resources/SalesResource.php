@@ -17,6 +17,7 @@ use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class SalesResource extends Resource
@@ -81,7 +82,7 @@ class SalesResource extends Resource
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ])
-            ;
+        ;
     }
 
     public static function getRelations(): array
@@ -103,5 +104,9 @@ class SalesResource extends Resource
     {
         return parent::getEloquentQuery()
             ->whereIn('role', ['sales']);
+    }
+    public static function canEdit(Model $record): bool
+    {
+        return false;
     }
 }

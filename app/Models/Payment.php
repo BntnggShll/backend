@@ -20,6 +20,6 @@ class Payment extends Model
         'raw_response',
     ];
     public function order() {
-        return $this->belongsTo(Order::class);
+        return $this->belongsTo(Order::class,'order_id');
     }
 }
