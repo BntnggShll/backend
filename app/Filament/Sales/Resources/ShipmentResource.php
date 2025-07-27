@@ -36,31 +36,39 @@ class ShipmentResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('order.user.name')
-                ->label('Nama Cu    mer'),
-                TextColumn::make('order.user.alamat')
-                ->label('Alamat'),
-                TextColumn::make('order.user.no_telp')
-                ->label('No Telepone'),
-                TextColumn::make('order.user.email')
-                ->label('Email'),
-                TextColumn::make('order.total_harga')
-                ->label('Total Harga'),
-                TextColumn::make('order.shipping_cost')
-                ->label('Biaya Pengantaran'),
+                TextColumn::make('nama_penerima')
+                    ->searchable(),
+                TextColumn::make('nomor_telp'),
+                TextColumn::make('catatan')
+                    ->wrap(),
+                TextColumn::make('alamat_pengantaran')
+                    ->wrap(),
                 TextColumn::make('perkiraan_pengiriman'),
+                TextColumn::make('order.orderItems.productunit.product.nama_produk')
+                    ->label('Nama Produk')
+                    ->wrap(),
+                TextColumn::make('order.orderItems.jumlah')
+                    ->label('Jumlah Barang'),
+                TextColumn::make('order.orderItems.productunit.unit.nama_unit')
+                    ->label('Satuan'),
+                TextColumn::make('order.orderItems.productunit.harga_jual')
+                    ->label('Harga Satuan'),
+                TextColumn::make('order.shipping_cost')
+                    ->label('Biaya Pengiriman'),
+                TextColumn::make('order.total_harga')
+                    ->label('Total Pembayaran'),
                 BadgeColumn::make('status_pengiriman')
                     ->colors([
                         'warning' => 'diproses',
+                        'success' => 'diterima',
                         'info' => 'dikirim',
-                        'success' => 'diterima'
                     ]),
             ])
             ->filters([
                 //
             ])
             ->actions([
-               
+
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -91,7 +99,8 @@ class ShipmentResource extends Resource
         $user = auth()->user();
         if ($user && $user->role === 'sales') {
             $query->where('sales_id', $user->id);
-        }return $query;
+        }
+        return $query;
     }
     public static function canCreate(): bool
     {

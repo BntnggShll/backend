@@ -17,12 +17,13 @@ use App\Http\Controllers\ResellersController;
 use App\Http\Controllers\LoginController;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 // Products
-Route::get('/products', [ProductsController::class,'index']);
-Route::get('/stok', [ProductsController::class,'stok']);
+Route::get('/products', [ProductsController::class, 'index']);
+Route::get('/stok', [ProductsController::class, 'stok']);
 Route::get('/products/{id}', [ProductsController::class, 'show']);
 
 // Orders
 Route::middleware('auth:sanctum')->post('/orders', [OrdersController::class, 'store']);
+Route::middleware('auth:sanctum')->get('/order-histori', [OrdersController::class, 'index']);
 
 // Order Items
 Route::apiResource('/order-items', OrderItemsController::class);
@@ -32,6 +33,16 @@ Route::apiResource('/shipments', ShipmentsController::class);
 
 // Payments
 Route::post('/payment/create', [PaymentsController::class, 'create'])->name('payment.create');
+// Route::post('/midtrans/callback', [PaymentsController::class, 'handleCallback']);
+// Route::post('/midtrans/create-snap', [PaymentsController::class, 'createSnap']);
+// Route::get('/midtrans/status/{orderId}', [PaymentsController::class, 'checkStatus']);
+// Route::get('/midtrans/test', [PaymentsController::class, 'testPayment']);
+Route::prefix('midtrans')->group(function () {
+    Route::post('/create', [PaymentsController::class, 'createSnap']);
+    Route::post('/callback', [PaymentsController::class, 'handleCallback']);
+    Route::get('/status/{orderId}', [PaymentsController::class, 'checkStatus']);
+});
+
 
 // Users
 Route::apiResource('/users', UserController::class);
@@ -46,7 +57,7 @@ Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $requ
 
 Route::post('/email/resend-verification', [RegisterController::class, 'resendVerificationEmail'])
     ->middleware('throttle:6,1') // Batasi agar tidak di-spam
-    ->name('verification.resend');  
+    ->name('verification.resend');
 // Sales
 Route::apiResource('sales', SalesController::class);
 
@@ -60,11 +71,12 @@ Route::apiResource('sales-tasks', SalesTasksController::class);
 Route::apiResource('resellers', ResellersController::class);
 
 // Login
+Route::middleware('auth:sanctum')->post('/update-user', [LoginController::class, 'updateUser']);
 
-Route::post('/login',[LoginController::class,'login']);
+Route::post('/login', [LoginController::class, 'login']);
 
 
-Route::post('/cost',[ShipmentsController::class,'cost']);
+Route::post('/cost', [ShipmentsController::class, 'cost']);
 // routes/api.php
 Route::get('/nama_daerah', function () {
     return \App\Models\ShippingRates::select('id', 'nama_daerah')->get();

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Hash;
 use Illuminate\Http\Request;
+use Storage;
 
 class LoginController extends Controller
 {
@@ -47,16 +48,63 @@ class LoginController extends Controller
             'message' => 'Login berhasil',
             'access_token' => $token,
             'token_type' => 'Bearer',
-            'data' => $user,
+            'data' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->role,
+                'alamat' => $user->alamat,
+                'no_telp' => $user->no_telp,
+                'image' => $user->image ? asset('storage/' . $user->image) : null,
+            ],
         ], 200);
     }
 
-    /**
-     * Menangani permintaan logout dari pengguna.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\JsonResponse
-     */
+    public function updateUser(Request $request)
+    {
+        $user = $request->user(); // dapatkan user dari token
+
+        // Validasi
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'alamat' => 'nullable|string',
+            'no_telp' => 'nullable|string',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+        ]);
+
+        // Update field teks
+        $user->name = $validated['name'];
+        $user->alamat = $validated['alamat'] ?? $user->alamat;
+        $user->no_telp = $validated['no_telp'] ?? $user->no_telp;
+
+        // Jika ada gambar baru
+        if ($request->hasFile('image')) {
+            // Hapus gambar lama jika ada
+            if ($user->image && Storage::exists($user->image)) {
+                Storage::delete($user->image);
+            }
+
+            // Simpan gambar baru
+            $path = $request->file('image')->store('profile', 'public');
+            $user->image = $path;
+        }
+
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Profil berhasil diperbarui',
+            'data' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->role,
+                'alamat' => $user->alamat,
+                'no_telp' => $user->no_telp,
+                'image' => $user->image ? asset('storage/' . $user->image) : null,
+            ],
+        ]);
+    }
     public function logout(Request $request)
     {
         // Hapus token yang sedang digunakan untuk otentikasi

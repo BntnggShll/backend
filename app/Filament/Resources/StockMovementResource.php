@@ -58,31 +58,32 @@ class StockMovementResource extends Resource
                     ->live(onBlur: true)
                     ->afterStateUpdated(fn($state, $set) => $set('quantity', abs($state)))
                     ->rule(function (Get $get, $record) { // $record akan berisi model saat edit
-                        return new class($get, $record) implements Rule {
+                        return new class ($get, $record) implements Rule {
                             private $get;
                             private $record;
-    
+
                             public function __construct(Get $get, $record)
                             {
                                 $this->get = $get;
                                 $this->record = $record;
                             }
-    
+
                             // Logika utama validasi
                             public function passes($attribute, $value)
                             {
                                 $get = $this->get;
-    
+
                                 if ($get('type') !== 'out') {
                                     return true;
                                 }
-    
+
                                 $productUnitId = $get('product_unit_id');
-                                if (!$productUnitId) return true;
-    
+                                if (!$productUnitId)
+                                    return true;
+
                                 // Ambil stok aktual dari database
                                 $currentStock = \App\Models\Inventory::where('product_unit_id', $productUnitId)->first()?->quantity ?? 0;
-    
+
                                 // Ini adalah logika kuncinya
                                 $effectiveAvailableStock = $currentStock;
                                 // Jika ini adalah form EDIT ($this->record tidak null)
@@ -90,31 +91,31 @@ class StockMovementResource extends Resource
                                     // Tambahkan kembali kuantitas lama dari record ini ke stok efektif
                                     $effectiveAvailableStock += abs($this->record->quantity);
                                 }
-    
+
                                 // Bandingkan dengan stok efektif
                                 if (abs($value) > $effectiveAvailableStock) {
                                     return false;
                                 }
-    
+
                                 return true;
                             }
-    
+
                             // Logika untuk pesan error
                             public function message()
                             {
                                 $get = $this->get;
                                 $productUnitId = $get('product_unit_id');
                                 $currentStock = \App\Models\Inventory::where('product_unit_id', $productUnitId)->first()?->quantity ?? 0;
-    
+
                                 $effectiveAvailableStock = $currentStock;
                                 if ($this->record) {
                                     $effectiveAvailableStock += abs($this->record->quantity);
                                 }
-    
+
                                 if ($effectiveAvailableStock <= 0) {
                                     return 'Stok untuk produk ini sudah habis (0).';
                                 }
-    
+
                                 return 'Jumlah keluar tidak boleh melebihi stok yang tersedia (' . $effectiveAvailableStock . ').';
                             }
                         };

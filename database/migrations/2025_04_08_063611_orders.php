@@ -16,6 +16,8 @@ return new class extends Migration
             $table->Integer('user_id');
             $table->unsignedInteger( 'total_harga')->default(0);
             $table->unsignedInteger('shipping_cost')->default(0);
+            $table->enum('status',['dikirim','diproses','dibayar','diantar','selesai'])->default('diproses');
+            $table->string('order_number',100)->nullable();
             $table->timestamps();
         
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
