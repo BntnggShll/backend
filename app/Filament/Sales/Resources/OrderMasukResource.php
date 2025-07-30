@@ -27,7 +27,7 @@ class OrderMasukResource extends Resource
     {
         return $form
             ->schema([
-                //
+                
             ]);
     }
 
@@ -53,10 +53,10 @@ class OrderMasukResource extends Resource
                 //
             ])
             ->actions([
-                Action::make('status_pengiriman')
-                    ->label('status_pengiriman')
-                    ->icon('heroicon-o-check-circle')
-                    ->color('success')
+                Action::make('Pengiriman')
+                    ->label('Pengiriman')
+                    ->icon('heroicon-o-truck')
+                    ->color('info')
                     ->visible(condition: fn($record) => $record->status_pengiriman === 'diproses')
                     ->requiresConfirmation()
                     ->modalHeading('Konfirmasi Pengiriman')
@@ -69,11 +69,11 @@ class OrderMasukResource extends Resource
                         ]);
 
                         // Kirim notifikasi sukses
-                        // Notification::make()
-                        //     ->title('Pembayaran Diterima')
-                        //     ->body('Status pembayaran telah berhasil diubah menjadi "Selesai".')
-                        //     ->success()
-                        //     ->send();
+                        Notification::make()
+                            ->title('Pembayaran Diterima')
+                            ->body('Status pembayaran telah berhasil diubah menjadi "Selesai".')
+                            ->success()
+                            ->send();
                     }),
             ]);
     }

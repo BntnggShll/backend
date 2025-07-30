@@ -4,26 +4,29 @@
 
         {{-- Kolom Kiri: Daftar Produk --}}
         <div class="lg:col-span-2 space-y-6">
-            @forelse ($productsByUnit as $unitName => $products)
+
+            @forelse ($productsByProduct as $productName => $productUnits)
                 <x-filament::section>
                     <x-slot name="heading">
-                        Stok Unit: {{ $unitName }}
+                        {{ $productName }}
                     </x-slot>
 
                     <div class="divide-y divide-gray-200 dark:divide-white/10">
-                        @foreach ($products as $product)
+                        {{-- Loop melalui setiap UNIT dari produk ini --}}
+                        @foreach ($productUnits as $productUnit)
                             @php
-                                // Ambil stok yang dimiliki sales untuk produk ini
-                                $availableStock = $salesStocks[$product['id']] ?? 0;
+                                // PERBAIKAN: Gunakan sintaks array ['id'] bukan ->id
+                                $availableStock = $salesStocks[$productUnit['id']] ?? 0;
                             @endphp
 
-                            {{-- Hanya tampilkan produk jika stoknya ada di tangan sales --}}
+                            {{-- Hanya tampilkan jika sales memiliki stok untuk unit ini --}}
                             @if ($availableStock > 0)
                                 <div class="flex items-center justify-between py-4">
                                     {{-- Informasi Produk --}}
                                     <div>
                                         <p class="text-base font-semibold text-gray-900 dark:text-white">
-                                            {{ $product['product']['nama_produk'] }}
+                                            {{-- PERBAIKAN: Gunakan sintaks array --}}
+                                            Unit: {{ $productUnit['unit']['nama_unit'] }}
                                         </p>
                                         <p class="text-sm text-gray-500 dark:text-gray-400">
                                             Stok Anda: <span class="font-medium text-primary-600">{{ $availableStock }}</span>
@@ -32,23 +35,24 @@
 
                                     {{-- Tombol Interaktif Plus/Minus --}}
                                     <div class="flex items-center gap-3">
+                                        {{-- PERBAIKAN: Gunakan sintaks array di semua aksi --}}
                                         <x-filament::icon-button
                                             icon="heroicon-m-minus"
                                             label="Kurangi"
-                                            wire:click="decrementQuantity({{ $product['id'] }})"
-                                            :disabled="($orderQuantities[$product['id']] ?? 0) <= 0"
+                                            wire:click="decrementQuantity({{ $productUnit['id'] }})"
+                                            :disabled="($orderQuantities[$productUnit['id']] ?? 0) <= 0"
                                             size="sm"
                                         />
 
                                         <span class="text-lg font-bold w-10 text-center">
-                                            {{ $orderQuantities[$product['id']] ?? 0 }}
+                                            {{ $orderQuantities[$productUnit['id']] ?? 0 }}
                                         </span>
 
                                         <x-filament::icon-button
                                             icon="heroicon-m-plus"
                                             label="Tambah"
-                                            wire:click="incrementQuantity({{ $product['id'] }})"
-                                            :disabled="($orderQuantities[$product['id']] ?? 0) >= $availableStock"
+                                            wire:click="incrementQuantity({{ $productUnit['id'] }})"
+                                            :disabled="($orderQuantities[$productUnit['id']] ?? 0) >= $availableStock"
                                             size="sm"
                                         />
                                     </div>
@@ -61,7 +65,9 @@
                 {{-- Tampilan jika sales tidak memegang stok apapun --}}
                 <x-filament::section>
                     <div class="text-center py-12">
-                        <x-heroicon-o-x-circle class="mx-auto h-12 w-12 text-gray-400" />
+                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2z" />
+                        </svg>
                         <h3 class="mt-2 text-sm font-semibold text-gray-900 dark:text-white">Stok Kosong</h3>
                         <p class="mt-1 text-sm text-gray-500">Anda belum memegang stok produk apapun.</p>
                     </div>
@@ -90,6 +96,7 @@
                             @foreach ($cartItems as $productUnitId => $quantity)
                                 @php
                                     $itemUnit = \App\Models\ProductUnit::find($productUnitId);
+                                    if(!$itemUnit) continue;
                                     $itemPrice = $itemUnit->harga_jual * $quantity;
                                     $totalPrice += $itemPrice;
                                 @endphp
@@ -113,21 +120,17 @@
                     @endif
                 </x-filament::section>
                 
-                {{-- Bagian Metode Pembayaran (Hanya muncul jika ada item di keranjang) --}}
+                {{-- Bagian Metode Pembayaran & Aksi --}}
                 @if (!empty($cartItems))
                     <x-filament::section>
                         <x-slot name="heading">
                             Metode Pembayaran
                         </x-slot>
-
                         <x-filament::input.select wire:model.live="paymentMethod">
                             <option value="cash" selected>Cash</option>
-                            <option value="transfer">Transfer Bank</option>
-                            <option value="qris">QRIS</option>
                         </x-filament::input.select>
                     </x-filament::section>
 
-                    {{-- Tombol Aksi Utama --}}
                     <div class="fi-page-actions">
                         @foreach ($this->getActions() as $action)
                             {{ $action }}

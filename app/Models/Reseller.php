@@ -12,6 +12,6 @@ class Reseller extends Model
     protected $fillable = ['nama_toko', 'status', 'user_id'];
 
     public function user() {
-        return $this->belongsTo(User::class,'id','user_id');
+        return $this->belongsTo(User::class,'user_id');
     }
 }

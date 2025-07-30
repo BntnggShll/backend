@@ -53,4 +53,12 @@ class ProductUnit extends Model
     {
         return $this->hasMany(StockMovement::class);
     }
+    public function inventory()
+    {
+        return $this->hasOne(Inventory::class);
+    }
+    public function salesstockMovements()
+    {
+        return $this->hasMany(sales_stocks::class);
+    }
 }

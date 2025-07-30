@@ -75,8 +75,12 @@ class OrdersController extends Controller
                     ],
                     'customer_details' => [
                         'first_name' => $request->name,
-                        'email' => $request->email,
-                    ]
+                        'email' => Auth::user()->email,
+                    ],
+                    'callbacks' => [
+                        'finish' => 'http://192.168.20.35:8080',
+                    ],
+
                 ];
                 $snapToken = Snap::getSnapToken($payload);
 
@@ -96,7 +100,7 @@ class OrdersController extends Controller
             return response()->json(array_merge([
                 'success' => true,
                 'message' => 'Order berhasil dibuat.',
-                'order' => $order->load('orderItems.productunit.product', 'orderItems.productunit.unit','payments'),
+                'order' => $order->load('orderItems.productunit.product', 'orderItems.productunit.unit', 'payments'),
             ], isset($transaction) ? [
                     'snap_token' => $snapToken,
                     'transaction_id' => $transaction->id,
@@ -118,7 +122,8 @@ class OrdersController extends Controller
         $orders = Order::with([
             'orderItems.productunit.product',
             'orderItems.productunit.unit',
-            'payments'
+            'payments',
+            'shipment'
         ])->where('user_id', $request->user()->id)
             ->orderByDesc('created_at')
             ->get();

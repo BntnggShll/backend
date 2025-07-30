@@ -106,24 +106,75 @@ class ProductsController extends Controller
         }
     }
 
-    public function stok()
-{
-    try {
-        $inventories = Inventory::get();
-        $formattedStock = $inventories->map(function ($inventory) {
-            return [
-                'id'              => $inventory->id,
-                'product_unit_id' => $inventory->product_unit_id,
-                'quantity'        => $inventory->quantity,
+    private function calculateChildrenUnits($unit, $baseQty, $conversion = 1, &$result = [])
+    {
+        foreach ($unit->children as $child) {
+            $totalConversion = $conversion * $child->conversion_rate;
+            $quantity = $baseQty * $totalConversion;
+
+            $result[] = [
+                'unit_id' => $child->id,
+                'unit_name' => $child->unit->nama_unit ?? '-',
+                'conversion' => $totalConversion,
+                'quantity' => $quantity,
+                'is_base' => false
             ];
-        });
 
-        return response()->json(['success' => true, 'data' => $formattedStock]);
+            // Rekursi: cari cucu unit
+            $this->calculateChildrenUnits($child, $baseQty, $totalConversion, $result);
+        }
 
-    } catch (\Exception $e) {
-        // 4. Tangani jika terjadi error.
-        Log::error('Error saat mengambil data stok: ' . $e->getMessage());
-        return response()->json(['success' => false, 'message' => 'Gagal mengambil data stok.'], 500);
+        return $result;
     }
-}
+
+    public function stok()
+    {
+        try {
+            $products = Product::with([
+                'productUnits.unit',
+                'productUnits.inventory',
+                'productUnits.children.unit',
+                'productUnits.children.children' // Untuk eager loading awal
+            ])->get();
+
+            $data = $products->map(function ($product) {
+                $units = $product->productUnits ?? collect();
+
+                $baseUnit = $units->firstWhere('parent_id', null);
+
+                $baseQty = $baseUnit && $baseUnit->inventory
+                    ? $baseUnit->inventory->quantity
+                    : 0;
+
+                $resultUnits = [];
+
+                // Base unit
+                $resultUnits[] = [
+                    'unit_id' => $baseUnit->id,
+                    'unit_name' => $baseUnit->unit->nama_unit ?? '-',
+                    'conversion' => 1,
+                    'quantity' => $baseQty,
+                    'is_base' => true
+                ];
+
+                // Ambil anak-anaknya secara rekursif
+                $this->calculateChildrenUnits($baseUnit, $baseQty, 1, $resultUnits);
+
+                return [
+                    'product_id' => $product->id,
+                    'nama_produk' => $product->nama_produk,
+                    'units' => $resultUnits
+                ];
+            });
+
+            return response()->json(['success' => true, 'data' => $data]);
+
+        } catch (\Exception $e) {
+            Log::error('Gagal ambil stok: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Terjadi kesalahan.'], 500);
+        }
+
+
+    }
+
 }

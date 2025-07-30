@@ -15,7 +15,7 @@ return new class extends Migration
             $table->integer('id')->autoIncrement();
             $table->Integer('user_id');
             $table->string('nama_toko',100);
-            $table->enum('status', ['aktif', 'tidak_aktif'])->default('aktif');
+            $table->enum('status', ['terima', 'tolak','proses'])->default('proses');
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
             $table->timestamps();
         });

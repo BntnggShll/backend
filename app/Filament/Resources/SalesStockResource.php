@@ -10,6 +10,7 @@ use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -41,9 +42,16 @@ class SalesStockResource extends Resource
                     ->label('Nama Sales'),
                 TextColumn::make('productUnit.product.nama_produk')
                     ->label('Nama Produk'),
+                TextColumn::make('productUnit.unit.nama_unit')
+                    ->label('Satuan')
+                    ->badge(),
                 TextColumn::make('quantity')
                     ->label('jumah Produk'),
-                TextColumn::make('status'),
+                BadgeColumn::make('status')
+                    ->colors([
+                        'success' => 'in',
+                        'danger' => 'out',
+                    ])->label('Tipe'),
                 TextColumn::make('stock_movement_id')
                     ->label('Id Stok Gudang'),
 

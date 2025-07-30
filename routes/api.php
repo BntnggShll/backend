@@ -32,17 +32,7 @@ Route::apiResource('/order-items', OrderItemsController::class);
 Route::apiResource('/shipments', ShipmentsController::class);
 
 // Payments
-Route::post('/payment/create', [PaymentsController::class, 'create'])->name('payment.create');
-// Route::post('/midtrans/callback', [PaymentsController::class, 'handleCallback']);
-// Route::post('/midtrans/create-snap', [PaymentsController::class, 'createSnap']);
-// Route::get('/midtrans/status/{orderId}', [PaymentsController::class, 'checkStatus']);
-// Route::get('/midtrans/test', [PaymentsController::class, 'testPayment']);
-Route::prefix('midtrans')->group(function () {
-    Route::post('/create', [PaymentsController::class, 'createSnap']);
-    Route::post('/callback', [PaymentsController::class, 'handleCallback']);
-    Route::get('/status/{orderId}', [PaymentsController::class, 'checkStatus']);
-});
-
+Route::post('/callback', [PaymentsController::class, 'callback']);
 
 // Users
 Route::apiResource('/users', UserController::class);
@@ -52,8 +42,7 @@ Route::post('/customer/register', [RegisterController::class, 'register_customer
 
 Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
     $request->fulfill();
-    return response()->json(['message' => 'Email berhasil diverifikasi!']);
-})->middleware(['signed'])->name('verification.verify');
+})->middleware(['auth', 'signed'])->name('verification.verify');
 
 Route::post('/email/resend-verification', [RegisterController::class, 'resendVerificationEmail'])
     ->middleware('throttle:6,1') // Batasi agar tidak di-spam
@@ -61,14 +50,8 @@ Route::post('/email/resend-verification', [RegisterController::class, 'resendVer
 // Sales
 Route::apiResource('sales', SalesController::class);
 
-// Sales Transactions
-Route::apiResource('sales-transactions', SalesTransactionsController::class);
-
-// Sales Tasks
-Route::apiResource('sales-tasks', SalesTasksController::class);
-
 // Resellers
-Route::apiResource('resellers', ResellersController::class);
+Route::post('/resellers',[ResellersController::class, 'store']);
 
 // Login
 Route::middleware('auth:sanctum')->post('/update-user', [LoginController::class, 'updateUser']);

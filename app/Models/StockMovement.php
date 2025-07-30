@@ -36,22 +36,84 @@ class StockMovement extends Model
 
         $validationCallback = function (StockMovement $stockMovement) {
             if ($stockMovement->type === 'out') {
-                $inventory = Inventory::where('product_unit_id', $stockMovement->product_unit_id)->first();
-                $currentStock = $inventory ? $inventory->quantity : 0;
+                $productUnit = ProductUnit::with('parent', 'inventory')->find($stockMovement->product_unit_id);
+                if (!$productUnit) {
+                    throw ValidationException::withMessages([
+                        'product_unit_id' => 'Unit produk tidak ditemukan.',
+                    ]);
+                }
+
+                $requestedQty = abs($stockMovement->quantity);
+
+                // 1. Cek stok langsung di unit
+                $currentStock = optional($productUnit->inventory)->quantity ?? 0;
                 $effectiveStock = $currentStock;
 
-                // Jika sedang mengupdate, tambahkan kembali nilai lama untuk perhitungan
-                if ($stockMovement->exists) { // $exists bernilai true jika model sudah ada di DB
+                // Jika sedang update, kembalikan stok lama ke stok sekarang
+                if ($stockMovement->exists) {
                     $effectiveStock += abs($stockMovement->getOriginal('quantity'));
                 }
 
-                if (abs($stockMovement->quantity) > $effectiveStock) {
+                // 2. Jika cukup, langsung lolos
+                if ($requestedQty <= $effectiveStock) {
+                    return;
+                }
+
+                // 3. Jika tidak cukup, coba pakai parent (konversi)
+                $remainingQty = $requestedQty - $effectiveStock;
+
+                // ... (Kode sebelum ini sama)
+
+                // 3. Jika tidak cukup, periksa apakah bisa konversi dari parent
+                $parent = $productUnit->parent; // Mengambil objek parent dari relasi
+
+                // PERUBAHAN LOGIKA UTAMA ADA DI SINI
+                if ($parent) {
+                    // 👉 JIKA PARENT ADA, lanjutkan logika konversi
+                    $remainingQty = $requestedQty - $effectiveStock;
+                    $parentInventory = optional($parent->inventory)->quantity ?? 0;
+
+                    // Hitung berapa parent yang dibutuhkan untuk memenuhi kekurangan
+                    // Pastikan conversion_rate tidak nol untuk menghindari division by zero error
+                    if (empty($productUnit->conversion_rate) || $productUnit->conversion_rate == 0) {
+                        throw ValidationException::withMessages([
+                            'product_unit_id' => 'Rasio konversi untuk unit ini belum diatur.',
+                        ]);
+                    }
+
+                    $neededParent = ceil($remainingQty / $productUnit->conversion_rate);
+
+                    if ($neededParent > $parentInventory) {
+                        // Stok parent juga tidak cukup
+                        throw ValidationException::withMessages([
+                            'quantity' => 'Stok tidak mencukupi bahkan setelah mencoba konversi dari ' . $parent->unit->nama_unit . '.'
+                        ]);
+                    }
+                    // Jika lolos sampai sini → stok parent mencukupi untuk dikonversi
+
+                } else {
+                    // 👉 JIKA PARENT TIDAK ADA, ini adalah keputusan final. Stok benar-benar habis.
+                    // Berikan pesan error yang jelas dan langsung.
                     throw ValidationException::withMessages([
-                        'quantity' => 'Jumlah keluar tidak boleh melebihi stok yang tersedia (' . $effectiveStock . ').',
+                        'quantity' => 'Stok untuk unit ini tidak mencukupi (' . $effectiveStock . ' tersedia, ' . $requestedQty . ' diminta).',
                     ]);
                 }
+
+                $parentInventory = optional($parent->inventory)->quantity ?? 0;
+
+                // Hitung berapa parent yang dibutuhkan untuk memenuhi kekurangan
+                $neededParent = ceil($remainingQty / $productUnit->conversion_rate);
+
+                if ($neededParent > $parentInventory) {
+                    throw ValidationException::withMessages([
+                        'quantity' => 'Stok tidak mencukupi. Stok langsung: ' . $effectiveStock . ', Sisa dibutuhkan dari parent: ' . $remainingQty . ' (' . $neededParent . ' ' . $parent->unit->nama_unit . ')',
+                    ]);
+                }
+
+                // Jika lolos sampai sini → stok mencukupi setelah konversi
             }
         };
+
 
         static::creating($validationCallback);
         static::updating($validationCallback);
@@ -98,7 +160,7 @@ class StockMovement extends Model
             // Hapus record SalesStock yang terhubung.
             // Sebenarnya sudah ditangani `cascadeOnDelete`, tapi ini sebagai pengaman.
             sales_stocks::where('stock_movement_id', $stockMovement->id)->delete();
-    
+
             // UPDATE INVENTARIS GUDANG UTAMA SETELAH DIHAPUS
             if ($stockMovement->productUnit) {
                 self::updateInventoryFor($stockMovement->productUnit);

@@ -21,7 +21,7 @@ class Order extends Page implements HasForms
     // Properti untuk navigasi
     protected static ?string $navigationIcon = 'heroicon-o-shopping-cart';
     protected static ?string $navigationLabel = 'Buat Pesanan Baru';
-    protected static ?int $navigationSort = -2; // Taruh di paling atas
+    protected static ?int $navigationSort = -2;
 
     // Properti untuk tampilan halaman
     protected static string $view = 'filament.sales.pages.order';
@@ -31,49 +31,86 @@ class Order extends Page implements HasForms
     // Properti untuk menampung data (State)
     public array $orderQuantities = [];
     public array $salesStocks = [];
-    public array $productsByUnit = [];
-    // Di dalam class Order
-public ?string $paymentMethod = 'cash';
+    public array $productsByProduct = [];
+    public ?string $paymentMethod = 'cash';
 
     /**
      * Method ini berjalan saat halaman pertama kali dimuat.
-     * Tugasnya adalah mengambil semua data yang diperlukan.
+     * Logika di sini telah dirombak total untuk mendukung stok virtual.
      */
     public function mount(): void
     {
         $salesId = auth()->id();
 
-        // 1. Ambil stok yang dipegang oleh sales yang sedang login.
+        // --- LANGKAH 1: Hitung stok FISIK yang dipegang sales ---
         $salesStockRecords = sales_stocks::where('sales_id', $salesId)->get();
-        
-        $stockTotals = [];
+        $physicalStocks = [];
         foreach ($salesStockRecords->groupBy('product_unit_id') as $productUnitId => $records) {
             $in = $records->where('status', 'in')->sum('quantity');
             $out = $records->where('status', 'out')->sum('quantity');
-            $stockTotals[$productUnitId] = $in - $out;
+            $currentStock = $in - $out;
+            if ($currentStock > 0) {
+                $physicalStocks[$productUnitId] = $currentStock;
+            }
         }
-        $this->salesStocks = $stockTotals;
 
-        // 2. Ambil semua produk yang tersedia, dan kelompokkan berdasarkan nama unitnya.
-        $this->productsByUnit = ProductUnit::with(['product', 'unit'])
-            ->whereIn('id', array_keys($this->salesStocks))
-            ->get()
-            ->groupBy('unit.nama_unit')
-            ->toArray();
+        // --- LANGKAH 2: Hitung stok EFEKTIF (Fisik + Virtual dari Parent) ---
+        $effectiveStocks = $physicalStocks;
 
-        // 3. Inisialisasi kuantitas pesanan menjadi 0 untuk semua produk.
-        foreach ($this->salesStocks as $productUnitId => $quantity) {
-            $this->orderQuantities[$productUnitId] = 0;
+        // Ambil model ProductUnit untuk stok fisik, beserta relasi children-nya
+        $parentUnits = ProductUnit::with('children')
+            ->whereIn('id', array_keys($physicalStocks))
+            ->get();
+
+        foreach ($parentUnits as $parentUnit) {
+            // Jika unit ini punya turunan (misal: Kotak punya Saset)
+            if ($parentUnit->children->isNotEmpty()) {
+                $parentQuantity = $physicalStocks[$parentUnit->id];
+
+                foreach ($parentUnit->children as $childUnit) {
+                    // Hitung berapa banyak unit anak yang bisa didapat dari parent
+                    if ($childUnit->conversion_rate > 0) {
+                        $derivedChildQuantity = $parentQuantity * $childUnit->conversion_rate;
+
+                        // Tambahkan stok virtual ke stok efektif.
+                        // Jika sudah ada stok fisik untuk anak, jumlahkan.
+                        if (isset($effectiveStocks[$childUnit->id])) {
+                            $effectiveStocks[$childUnit->id] += $derivedChildQuantity;
+                        } else {
+                            $effectiveStocks[$childUnit->id] = $derivedChildQuantity;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Simpan hasil perhitungan stok efektif sebagai sumber kebenaran
+        $this->salesStocks = $effectiveStocks;
+
+        // --- LANGKAH 3: Siapkan data untuk ditampilkan di View ---
+        $allUnitIds = array_keys($this->salesStocks);
+        
+        $productUnitsForView = ProductUnit::with(['product', 'unit'])
+            ->whereIn('id', $allUnitIds)
+            ->get();
+
+        $this->productsByProduct = $productUnitsForView->groupBy('product.nama_produk')->toArray();
+
+        // --- LANGKAH 4: Inisialisasi kuantitas pesanan menjadi 0 ---
+        $this->orderQuantities = [];
+        foreach ($allUnitIds as $id) {
+            $this->orderQuantities[$id] = 0;
         }
     }
 
     /**
      * Aksi untuk menambah kuantitas pesanan.
+     * Logika ini tidak perlu diubah karena sudah memeriksa $this->salesStocks.
      */
     public function incrementQuantity(int $productUnitId): void
     {
         $maxStock = $this->salesStocks[$productUnitId] ?? 0;
-        if ($this->orderQuantities[$productUnitId] < $maxStock) {
+        if (($this->orderQuantities[$productUnitId] ?? 0) < $maxStock) {
             $this->orderQuantities[$productUnitId]++;
         } else {
             Notification::make()
@@ -86,16 +123,18 @@ public ?string $paymentMethod = 'cash';
 
     /**
      * Aksi untuk mengurangi kuantitas pesanan.
+     * Tidak perlu diubah.
      */
     public function decrementQuantity(int $productUnitId): void
     {
-        if ($this->orderQuantities[$productUnitId] > 0) {
+        if (($this->orderQuantities[$productUnitId] ?? 0) > 0) {
             $this->orderQuantities[$productUnitId]--;
         }
     }
 
     /**
      * Method ini adalah action utama untuk membuat pesanan.
+     * Tidak perlu diubah.
      */
     protected function getActions(): array
     {
@@ -110,6 +149,7 @@ public ?string $paymentMethod = 'cash';
 
     /**
      * Logika utama untuk menyimpan pesanan ke database.
+     * Tidak perlu diubah.
      */
     public function createOrder(): void
     {
@@ -127,25 +167,29 @@ public ?string $paymentMethod = 'cash';
 
                 foreach ($cartItems as $productUnitId => $quantity) {
                     $productUnit = ProductUnit::find($productUnitId);
-                    $totalPrice += $productUnit->harga_jual * $quantity;
+                    if ($productUnit) {
+                        $totalPrice += $productUnit->harga_jual * $quantity;
+                    }
                 }
 
                 $order = OrderModel::create([
                     'user_id' => $salesId,
                     'total_harga' => $totalPrice,
                     'shipping_cost' => 0,
-                    'created_at' => now(),
+                    'status' => 'completed',
                 ]);
 
                 Payment::create([
                     'order_id' => $order->id,
-                    'total_pembayaran' => $order->total_harga + $order->shipping_cost, // Total harga + ongkir
-                    'metode_pembayaran' => $this->paymentMethod, // Dari pilihan di form
-                    'status_pembayaran' => 'menunggu', // Status awal
+                    'total_pembayaran' => $order->total_harga + $order->shipping_cost,
+                    'metode_pembayaran' => $this->paymentMethod,
+                    'status_pembayaran' => 'paid',
                 ]);
+
                 foreach ($cartItems as $productUnitId => $quantity) {
                     $productUnit = ProductUnit::find($productUnitId);
-                    
+                    if (!$productUnit) continue;
+
                     OrderItem::create([
                         'order_id' => $order->id,
                         'product_unit_id' => $productUnitId,
@@ -153,20 +197,19 @@ public ?string $paymentMethod = 'cash';
                         'harga' => $productUnit->harga_jual,
                     ]);
 
-                    // PERBAIKAN: Buat catatan di 'sales_stocks' dengan menyertakan product_unit_id
                     sales_stocks::create([
                         'sales_id' => $salesId,
-                        'product_unit_id' => $productUnitId, // <-- INI YANG DITAMBAHKAN
+                        'product_unit_id' => $productUnitId,
                         'quantity' => $quantity,
                         'status' => 'out',
+                        'order_id' => $order->id,
                     ]);
-                    
                 }
 
-                $this->reset('orderQuantities');
-                $this->mount();
-
                 Notification::make()->title('Pesanan berhasil dibuat!')->success()->send();
+                
+                $this->reset('orderQuantities', 'paymentMethod');
+                $this->mount();
             });
         } catch (\Exception $e) {
             Notification::make()->title('Terjadi Kesalahan')->body($e->getMessage())->danger()->send();
