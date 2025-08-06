@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('shipping_rates', function (Blueprint $table) {
             $table->integer('id')->autoIncrement()->primary();
-            $table->string('nama_daerah');
+            $table->string('nama_daerah',150);
             $table->unsignedInteger('cost')->default(0);    
             $table->string('nama_penerima', 150)->after('user_id');
             $table->string('nomor_telp', 15)->after('nama_penerima');

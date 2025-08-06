@@ -66,3 +66,4 @@ Route::get('/nama_daerah', function () {
 });
 
 
+Route::middleware('auth:sanctum')->post('/orders/{id}/cancel', [OrdersController::class, 'cancel']);

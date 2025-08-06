@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Midtrans\Snap;
+use Illuminate\Support\Str;
 class OrdersController extends Controller
 {
     public function store(Request $request)
@@ -70,7 +71,7 @@ class OrdersController extends Controller
             if ($request->payment_method === 'transfer') {
                 $payload = [
                     'transaction_details' => [
-                        'order_id' => $order->order_number,
+                        'order_id' => $order->id . '-' . time(),
                         'gross_amount' => $request->total_amount,
                     ],
                     'customer_details' => [
@@ -80,10 +81,11 @@ class OrdersController extends Controller
                     'callbacks' => [
                         'finish' => 'http://192.168.20.35:8080',
                     ],
+                    'notification_url' => 'https://faster-limousines-stylish-area.trycloudflare.com/api/callback',
 
                 ];
                 $snapToken = Snap::getSnapToken($payload);
-
+                $transaction_id = 'TRX-' . Str::random(4) . '-' . Str::random(8);
                 // Simpan transaksi
                 $transaction = Payment::create([
                     'order_id' => $order->id,
@@ -134,4 +136,64 @@ class OrdersController extends Controller
             'orders' => $orders
         ]);
     }
+
+    public function cancel(Request $request, $id)
+    {
+        $user = $request->user();
+
+        $order = Order::with(['orderItems', 'payments', 'shipment'])->where('id', $id)->where('user_id', $user->id)->first();
+
+        if (!$order) {
+            return response()->json(['message' => 'Pesanan tidak ditemukan.'], 404);
+        }
+
+    
+        try {
+            DB::beginTransaction();
+
+            // Update status order
+            $order->status = 'batal';
+            $order->save();
+
+            // Kembalikan stok
+            foreach ($order->orderItems as $item) {
+                StockMovement::create([
+                    'product_unit_id' => $item->product_unit_id,
+                    'quantity' => $item->jumlah,
+                    'type' => 'in',
+                    'order_id' => $order->id, // pastikan kolom ini ada
+                ]);
+            }
+
+            // Hapus shipment
+            if ($order->shipment) {
+                $order->shipment->delete();
+            }
+
+            // Hapus payment
+            if ($order->payments && $order->payments->count() > 0) {
+                $order->payments()->delete();
+            }
+
+            // Opsional: expire transaksi Midtrans
+            if ($order->payments && count($order->payments)) {
+                $midtransOrderId = $order->payments[0]->midtrans_order_id;
+                try {
+                    \Midtrans\Transaction::expire($midtransOrderId);
+                } catch (\Exception $e) {
+                    // Bisa log error di sini jika perlu
+                }
+            }
+
+            DB::commit();
+
+            return response()->json(['message' => 'Pesanan berhasil dibatalkan.']);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'message' => 'Gagal membatalkan pesanan: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
 }
