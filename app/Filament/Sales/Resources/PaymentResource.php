@@ -27,7 +27,7 @@ class PaymentResource extends Resource
     protected static ?string $model = Payment::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-credit-card';
-    protected static ?string $navigationGroup = 'Manajemen Pembayaran';
+    protected static ?string $navigationGroup = 'Manajemen Pesanan';
     protected static ?string $navigationLabel = 'Pembayaran';
 
     public static function form(Form $form): Form
@@ -76,30 +76,7 @@ class PaymentResource extends Resource
 
             ])
             ->actions([
-                Action::make('accept_payment')
-                    ->label('Accept Payment')
-                    ->icon('heroicon-o-check-circle')
-                    ->color('success')
-                    // Hanya tampilkan tombol ini jika statusnya 'menunggu'
-                    ->visible(condition: fn($record) => $record->status_pembayaran === 'menunggu')
-                    // Minta konfirmasi dari user
-                    ->requiresConfirmation()
-                    ->modalHeading('Konfirmasi Pembayaran')
-                    ->modalDescription('Apakah Anda yakin ingin menerima pembayaran ini dan mengubah status menjadi "Selesai"?')
-                    ->modalSubmitActionLabel('Ya, Terima Pembayaran')
-                    // Logika yang akan dijalankan saat tombol dikonfirmasi
-                    ->action(function ($record) {
-                        $record->update([
-                            'status_pembayaran' => 'selesai'
-                        ]);
-
-                        // Kirim notifikasi sukses
-                        Notification::make()
-                            ->title('Pembayaran Diterima')
-                            ->body('Status pembayaran telah berhasil diubah menjadi "Selesai".')
-                            ->success()
-                            ->send();
-                    }),
+                
             ]);
 
     }

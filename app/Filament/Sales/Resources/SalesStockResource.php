@@ -11,6 +11,8 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -21,9 +23,9 @@ class SalesStockResource extends Resource
 {
     protected static ?string $model = sales_stocks::class;
     protected static ?string $label = 'Stok';
-    protected static ?string $navigationGroup = 'Manajemen Stok';
+    protected static ?string $navigationGroup = 'Manajemen Produk';
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-inbox';
 
     public static function form(Form $form): Form
     {
@@ -40,6 +42,7 @@ class SalesStockResource extends Resource
                 TextColumn::make('sales.name')
                     ->label('Nama Sales'),
                 TextColumn::make('productUnit.product.nama_produk')
+                    ->searchable()
                     ->label('Nama Produk'),
                 TextColumn::make('quantity')
                     ->label('jumah Produk'),
@@ -50,14 +53,14 @@ class SalesStockResource extends Resource
 
             ])
             ->filters([
-             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
+                SelectFilter::make('status')
+                    ->label('Tipe Transaksi')
+                    ->options([
+                        'in' => 'Masuk',
+                        'out' => 'Keluar',
+                    ])
+                    ->default(null)
+                    ->placeholder('Semua')
             ]);
     }
 
@@ -84,10 +87,10 @@ class SalesStockResource extends Resource
     {
         return false;
     }
-    public static function getEloquentQuery():Builder
+    public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-        ->where('sales_id', Auth::id());
+            ->where('sales_id', Auth::id());
     }
 
 }

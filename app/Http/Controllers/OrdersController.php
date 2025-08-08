@@ -3,6 +3,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Payment;
+use App\Models\ProductUnit;
 use App\Models\Shipment;
 use App\Models\StockMovement;
 use Illuminate\Http\Request;
@@ -52,11 +53,33 @@ class OrdersController extends Controller
                     'jumlah' => $item['quantity'],
                     'harga' => $item['price'],
                 ]);
+
+                $productUnit = ProductUnit::with('product.productUnits')->findOrFail($item['unit_id']);
+
+                // Catat mutasi berdasarkan unit yang dimasukkan (biar histori rapi)
                 StockMovement::create([
-                    'product_unit_id' => $item['unit_id'],
+                    'product_unit_id' => $productUnit->id,
                     'quantity' => -$item['quantity'],
                     'type' => 'out',
                 ]);
+
+                // Cari unit tertinggi (stok fisik tersimpan di sini)
+                $topUnit = $productUnit->product->productUnits->sortBy('conversion_rate')->first();
+
+                // Konversi ke unit tertinggi
+                $convertedQty = $item['quantity'] / $productUnit->conversion_rate;
+
+                // Update stok nyata hanya di unit tertinggi
+                StockMovement::where('product_unit_id', $topUnit->id)->decrement('quantity', $convertedQty);
+
+
+
+
+                // StockMovement::create([
+                //     'product_unit_id' => $item['unit_id'],
+                //     'quantity' => -$item['quantity'],
+                //     'type' => 'out',
+                // ]);
             }
             $shipment = Shipment::create([
                 'order_id' => $order->id,
@@ -81,7 +104,6 @@ class OrdersController extends Controller
                     'callbacks' => [
                         'finish' => 'http://192.168.20.35:8080',
                     ],
-                    'notification_url' => 'https://faster-limousines-stylish-area.trycloudflare.com/api/callback',
 
                 ];
                 $snapToken = Snap::getSnapToken($payload);
@@ -93,6 +115,13 @@ class OrdersController extends Controller
                     'snap_token' => $snapToken,
                     'total_pembayaran' => $request->total_amount,
                     'metode_pembayaran' => 'midtrans',
+                ]);
+            } else {
+                Payment::create([
+                    'order_id' => $order->id,
+                    'total_pembayaran' => $request->total_amount,
+                    'metode_pembayaran' => 'Cash',
+                    'status_pembayaran' => 'diproses'
                 ]);
             }
 
@@ -147,7 +176,7 @@ class OrdersController extends Controller
             return response()->json(['message' => 'Pesanan tidak ditemukan.'], 404);
         }
 
-    
+
         try {
             DB::beginTransaction();
 

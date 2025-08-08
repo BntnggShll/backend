@@ -15,5 +15,15 @@ class OrderMasuk extends Model
     public function shipment() {
         return $this->hasOne(Shipment::class,'order_id');
     }
-    
+    public function order() {
+        return $this->belongsTo(Order::class);
+    }
+    protected static function booted()
+    {
+        static::updated(function ($shipment) {
+            if ($shipment->isDirty('status_pengiriman') && $shipment->status_pengiriman === 'dikirim') {
+                $shipment->order?->update(['status' => 'dikirim']);
+            }
+        });
+    }
 }

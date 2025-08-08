@@ -14,12 +14,14 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
+
 
 class ProductResource extends Resource
 {
     protected static ?string $model = Product::class;
-
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationGroup = 'Manajemen Produk';
+    protected static ?string $navigationIcon = 'heroicon-o-inbox-stack';
 
     public static function form(Form $form): Form
     {
@@ -45,8 +47,7 @@ class ProductResource extends Resource
                     ->badge(),
                 Tables\Columns\TextColumn::make('productUnits.harga_jual')
                     ->label('Harga Satuan')
-                    ->listWithLineBreaks()
-                    ->badge(),
+                    ->listWithLineBreaks(),
                 TextColumn::make('stok_saat_ini')
                     ->label('Stok Saat Ini')
                     ->getStateUsing(function (Product $record) {

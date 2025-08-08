@@ -26,7 +26,7 @@ class StockMovementResource extends Resource
         return $form
             ->schema([
                 Forms\Components\Select::make('product_unit_id')
-                    ->relationship('productUnit', 'id')
+                    ->relationship('productUnit', 'id', fn ($query) => $query->whereNull('parent_id'))
                     ->getOptionLabelFromRecordUsing(fn($record) => "{$record->product->nama_produk} - {$record->unit->nama_unit}")
                     ->searchable(['product.nama_produk', 'unit.nama_unit'])
                     ->preload()

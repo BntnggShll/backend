@@ -23,9 +23,10 @@ class OrdersResource extends Resource
 {
     protected static ?string $model = Order::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-list';
+    protected static ?string $label = 'Pesanan';
 
-
+    protected static ?string $navigationGroup = 'Manajemen Pesanan';
     public static function form(Form $form): Form
     {
         return $form
@@ -50,9 +51,6 @@ class OrdersResource extends Resource
         TextColumn::make('total_harga')
             ->label('Total Harga')
             ->prefix('Rp '),
-        TextColumn::make('shipping_cost')
-            ->label('Biaya Pengiriman')
-            ->prefix('Rp '),
         TextColumn::make('payments.metode_pembayaran')
             ->label('Metode Pembayaran'),
         BadgeColumn::make('payments.status_pembayaran')
@@ -63,7 +61,7 @@ class OrdersResource extends Resource
                 'danger' => 'gagal',
                 'gray' => 'kadaluarsa',
             ])
-            ->label('Status Pengiriman'),
+            ->label('Status Pembayaran'),
         TextColumn::make('created_at')
             ->label('Dipesan'),
         TextColumn::make('updated_at')

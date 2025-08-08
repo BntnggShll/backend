@@ -29,7 +29,7 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     public function reseller() {
-        return $this->hasOne(Reseller::class);
+        return $this->hasOne(Reseller::class,'user_id');
     }
 
 

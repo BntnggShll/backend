@@ -41,7 +41,8 @@ class SalesStockResource extends Resource
                 TextColumn::make('sales.name')
                     ->label('Nama Sales'),
                 TextColumn::make('productUnit.product.nama_produk')
-                    ->label('Nama Produk'),
+                    ->label('Nama Produk')
+                    ->searchable(),
                 TextColumn::make('productUnit.unit.nama_unit')
                     ->label('Satuan')
                     ->badge(),
@@ -59,7 +60,15 @@ class SalesStockResource extends Resource
             ])
             ->filters([
                 SelectFilter::make('sales')
-                    ->relationship('sales', 'name', fn(Builder $query) => $query->where('role', 'sales'))
+                    ->relationship('sales', 'name', fn(Builder $query) => $query->where('role', 'sales')),
+                SelectFilter::make('status')
+                    ->label('Tipe Transaksi')
+                    ->options([
+                        'in' => 'Masuk',
+                        'out' => 'Keluar',
+                    ])
+                    ->default(null)
+                    ->placeholder('Semua')
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

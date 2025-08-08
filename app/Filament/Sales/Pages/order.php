@@ -21,6 +21,7 @@ class Order extends Page implements HasForms
     // Properti untuk navigasi
     protected static ?string $navigationIcon = 'heroicon-o-shopping-cart';
     protected static ?string $navigationLabel = 'Buat Pesanan Baru';
+    protected static ?string $navigationGroup = 'Manajemen Pesanan';
     protected static ?int $navigationSort = -2;
 
     // Properti untuk tampilan halaman
@@ -176,14 +177,14 @@ class Order extends Page implements HasForms
                     'user_id' => $salesId,
                     'total_harga' => $totalPrice,
                     'shipping_cost' => 0,
-                    'status' => 'completed',
+                    'status' => 'selesai',
                 ]);
 
                 Payment::create([
                     'order_id' => $order->id,
                     'total_pembayaran' => $order->total_harga + $order->shipping_cost,
                     'metode_pembayaran' => $this->paymentMethod,
-                    'status_pembayaran' => 'paid',
+                    'status_pembayaran' => 'menunggu',
                 ]);
 
                 foreach ($cartItems as $productUnitId => $quantity) {

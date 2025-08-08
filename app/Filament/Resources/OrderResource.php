@@ -6,11 +6,14 @@ use App\Filament\Resources\OrderResource\Pages;
 use App\Filament\Resources\OrderResource\RelationManagers;
 use App\Models\Order;
 use Filament\Forms;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -49,8 +52,16 @@ class OrderResource extends Resource
                     ->label('Total Harga'),
                 TextColumn::make('shipping_cost')
                     ->label('Biaya Pengiriman'),
+                BadgeColumn::make('status')
+                    ->colors([
+                        'success' => 'selesai',
+                        'warning' => 'diproses',
+                        'info' => 'dibayar',
+                        'gray' => 'dikirim',
+                        'danger' => 'batal',
+                    ]),
                 TextColumn::make('shipment.sales.name')
-                    ->label('Pengiriman'),
+                    ->label('Pengirim'),
                 TextColumn::make('shipment.perkiraan_pengiriman')
                     ->label('Perkiraan Pengiriman'),
                 BadgeColumn::make('shipment.status_pengiriman')
@@ -70,14 +81,35 @@ class OrderResource extends Resource
                         'danger' => 'gagal',
                         'gray' => 'kadaluarsa',
                     ])
-                    ->label('Status Pengiriman'),
+                    ->label('Status Pembayaran'),
                 TextColumn::make('created_at')
                     ->label('Dipesan'),
                 TextColumn::make('updated_at')
                     ->label('Diperbarui'),
             ])
             ->filters([
-                //
+                Filter::make('user_name')
+                    ->form([
+                        TextInput::make('name')->label('Nama Pembeli'),
+                    ])
+                    ->query(function ($query, array $data) {
+                        return $query->when(
+                            $data['name'],
+                            fn($query, $name) => $query->whereHas('user', fn($q) => $q->where('name', 'like', "%{$name}%"))
+                        );
+                    }),
+
+                // Filter berdasarkan rentang tanggal (created_at)
+                Filter::make('created_at')
+                    ->form([
+                        DatePicker::make('from')->label('Dari Tanggal'),
+                        DatePicker::make('until')->label('Sampai Tanggal'),
+                    ])
+                    ->query(function ($query, array $data) {
+                        return $query
+                            ->when($data['from'], fn($q, $from) => $q->whereDate('created_at', '>=', $from))
+                            ->when($data['until'], fn($q, $until) => $q->whereDate('created_at', '<=', $until));
+                    }),
             ])
             ->actions([
             ])

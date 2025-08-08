@@ -5,10 +5,8 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\UserResource\Pages;
 use App\Filament\Resources\UserResource\RelationManagers;
 use App\Models\User;
-use Filament\Forms;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\TextInput;
+use Filament\Tables\Actions\Action;
+use Filament\Notifications\Notification;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -60,6 +58,45 @@ class UserResource extends Resource
                     ])
             ])
             ->actions([
+                Action::make('Terima Reseller')
+                    ->label('Terima')
+                    ->icon('heroicon-o-check-circle')
+                    ->color('success')
+                    ->visible(fn(User $record) => $record->reseller?->status === 'proses')
+                    ->requiresConfirmation()
+                    ->modalHeading('Konfirmasi Penerimaan')
+                    ->modalDescription('Apakah Anda yakin menerima pendaftaran reseller ini?')
+                    ->modalSubmitActionLabel('Ya, Terima')
+                    ->action(function (User $record) {
+                        $record->reseller?->update(['status' => 'terima']);
+                        $record->update(['role' => 'reseller']);
+                    })
+                    ->successNotification(
+                        Notification::make()
+                            ->success()
+                            ->title('Reseller Diterima')
+                            ->body('Pendaftaran reseller telah berhasil diterima.')
+                    ),
+
+                Action::make('Tolak Reseller')
+                    ->label('Tolak')
+                    ->icon('heroicon-o-x-circle')
+                    ->color('danger')
+                    ->visible(fn(User $record) => $record->reseller?->status === 'proses')
+                    ->requiresConfirmation()
+                    ->modalHeading('Konfirmasi Penolakan')
+                    ->modalDescription('Apakah Anda yakin menolak pendaftaran reseller ini? Peran pengguna akan dikembalikan ke customer.')
+                    ->modalSubmitActionLabel('Ya, Tolak')
+                    ->action(function (User $record) {
+                        $record->reseller?->update(['status' => 'tolak']);
+                        
+
+                        Notification::make()
+                            ->success()
+                            ->title('Reseller Ditolak')
+                            ->body('Pendaftaran reseller telah ditolak dan perannya dikembalikan ke customer.')
+                            ->send();
+                    }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

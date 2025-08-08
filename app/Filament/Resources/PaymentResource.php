@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\PaymentResource\Pages;
 use App\Models\Payment;
+use Filament\Notifications\Notification;
 use Filament\Tables\Actions\Action;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -68,11 +69,11 @@ class PaymentResource extends Resource
             ])
             ->actions([
                 Action::make('accept_payment')
-                    ->label('Accept Payment')
+                    ->label('Terima pembayaran')
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
                     // Hanya tampilkan tombol ini jika statusnya 'menunggu'
-                    ->visible(condition: fn($record) => $record->status_pembayaran === 'menunggu' && $record->order->user->name === 'sales')
+                    ->visible(condition: fn($record) => $record->status_pembayaran === 'menunggu' && $record->order->payments->metode_pembayaran === 'Cash')
                     // Minta konfirmasi dari user
                     ->requiresConfirmation()
                     ->modalHeading('Konfirmasi Pembayaran')
@@ -85,11 +86,11 @@ class PaymentResource extends Resource
                         ]);
 
                         // Kirim notifikasi sukses
-                        // Notification::make()
-                        //     ->title('Pembayaran Diterima')
-                        //     ->body('Status pembayaran telah berhasil diubah menjadi "Selesai".')
-                        //     ->success()
-                            // ->send();
+                        Notification::make()
+                            ->title('Pembayaran Diterima')
+                            ->body('Status pembayaran telah diterima.')
+                            ->success()
+                            ->send();
                     }),
             ]);
             

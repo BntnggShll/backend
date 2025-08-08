@@ -16,13 +16,15 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Notification;
+use Filament\Notifications\Notification;
 
 class ShipmentResource extends Resource
 {
     protected static ?string $model = Shipment::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-truck';
+    protected static ?string $label = 'Pengiriman';
+    protected static ?string $navigationGroup = 'Manajemen Pengiriman';
 
     public static function form(Form $form): Form
     {
@@ -63,12 +65,67 @@ class ShipmentResource extends Resource
                         'success' => 'diterima',
                         'info' => 'dikirim',
                     ]),
+                BadgeColumn::make('order.payments.status_pembayaran')
+                    ->label('Status Pembayaran')
+                    ->colors([
+                        'warning' => 'menunggu',
+                        'info' => 'diproses',
+                        'gray' => 'kadarluasa',
+                        'danger' => 'gagal',
+                        'success' => 'selesai',
+                    ]),
+                TextColumn::make('order.payments.metode_pembayaran')
+                    ->label('Metode Pembayaran'),
             ])
             ->filters([
                 //
             ])
             ->actions([
+                Action::make('Terima Pembayaran')
+                ->label('Terima Pembayaran')
+                ->icon('heroicon-o-banknotes')
+                ->color('danger')
+                ->visible(condition: fn($record) => $record->order?->payments?->metode_pembayaran === 'Cash')
+                ->requiresConfirmation()
+                ->modalHeading('Konfirmasi Pembayaran')
+                ->modalDescription('Menerima pembayaran dari pelanggan')
+                ->modalSubmitActionLabel('Ya')
+                ->action(function ($record) {
+                    $record->order?->payments?->update(['status_pembayaran'=>'menunggu']);
+                    $record->order?->update(['status'=>'selesai']);
+                    $record->update([
+                        'status_pengiriman' => 'diterima',
+                    ]);
 
+                    // Kirim notifikasi sukses
+                    Notification::make()
+                        ->title('Pembayaran Diterima')
+                        ->body('Status pembayaran telah diterima.')
+                        ->success()
+                        ->send();
+                }),
+                Action::make('Selesaikan pengiriman')
+                ->label('Selesaikan pengiriman')
+                ->icon('heroicon-o-truck')
+                ->color('success')
+                ->visible(condition: fn($record) => $record->order?->payments?->metode_pembayaran !== 'Cash' && !is_null($record->order?->payments))
+                ->requiresConfirmation()
+                ->modalHeading('Konfirmasi Pembayaran')
+                ->modalDescription('Menerima pembayaran dari pelanggan')
+                ->modalSubmitActionLabel('Ya')
+                ->action(function ($record) {
+                    $record->order?->update(['status'=>'selesai']);
+                    $record->update([
+                        'status_pengiriman' => 'diterima',
+                    ]);
+
+                    // Kirim notifikasi sukses
+                    Notification::make()
+                        ->title('Pengiriman selesai')
+                        ->body('Produk sudah berhasil di antarkan.')
+                        ->success()
+                        ->send();
+                }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

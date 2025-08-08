@@ -25,7 +25,7 @@ class RegisterController extends Controller
             if ($validator->fails()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Validasi gagal',
+                    'message' => 'Email sudah ada',
                     'errors'  => $validator->errors()
                 ], 422);
             }
@@ -60,27 +60,43 @@ class RegisterController extends Controller
         }
         
     }
-    public function resendVerificationEmail(Request $request)
+    public function verifyEmail(Request $request, $id, $hash)
     {
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|email|exists:users,email',
-        ]);
+        $user = User::findOrFail($id);
 
-        if ($validator->fails()) {
-            return response()->json(['success' => false, 'message' => 'Email tidak ditemukan.'], 422);
+        if (! hash_equals((string) $hash, sha1($user->getEmailForVerification()))) {
+            return response()->json(['message' => 'Invalid verification link.'], 403);
         }
 
-        $user = User::where('email', $request->email)->first();
-        if (!$user) {
-            return response()->json(['success' => false, 'message' => 'Email tidak ditemukan.'], 404);
-        }
         if ($user->hasVerifiedEmail()) {
-            return response()->json(['success' => false, 'message' => 'Email ini sudah diverifikasi.'], 400);
+            return response()->json(['message' => 'Email sudah diverifikasi.']);
         }
 
-        // Kirim ulang notifikasi verifikasi
-        $user->sendEmailVerificationNotification();
+        $user->markEmailAsVerified();
 
-        return response()->json(['success' => true, 'message' => 'Link verifikasi baru telah dikirim ke email Anda.']);
+        return response()->json(['message' => 'Email berhasil diverifikasi.']);
     }
+    // public function resendVerificationEmail(Request $request)
+    // {
+    //     $validator = Validator::make($request->all(), [
+    //         'email' => 'required|email|exists:users,email',
+    //     ]);
+
+    //     if ($validator->fails()) {
+    //         return response()->json(['success' => false, 'message' => 'Email tidak ditemukan.'], 422);
+    //     }
+
+    //     $user = User::where('email', $request->email)->first();
+    //     if (!$user) {
+    //         return response()->json(['success' => false, 'message' => 'Email tidak ditemukan.'], 404);
+    //     }
+    //     if ($user->hasVerifiedEmail()) {
+    //         return response()->json(['success' => false, 'message' => 'Email ini sudah diverifikasi.'], 400);
+    //     }
+
+    //     // Kirim ulang notifikasi verifikasi
+    //     $user->sendEmailVerificationNotification();
+
+    //     return response()->json(['success' => true, 'message' => 'Link verifikasi baru telah dikirim ke email Anda.']);
+    // }
 }

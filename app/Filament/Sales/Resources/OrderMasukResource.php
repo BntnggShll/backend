@@ -15,13 +15,15 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Notification;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class OrderMasukResource extends Resource
 {
     protected static ?string $model = OrderMasuk::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-check';
+    protected static ?string $navigationGroup = 'Manajemen Pengiriman';
 
     public static function form(Form $form): Form
     {
@@ -69,11 +71,11 @@ class OrderMasukResource extends Resource
                         ]);
 
                         // Kirim notifikasi sukses
-                        Notification::make()
-                            ->title('Pembayaran Diterima')
-                            ->body('Status pembayaran telah berhasil diubah menjadi "Selesai".')
-                            ->success()
-                            ->send();
+                        // Notification::make()
+                        //     ->title('Pembayaran Diterima')
+                        //     ->body('Status pembayaran telah berhasil diubah menjadi "Selesai".')
+                        //     ->success()
+                        //     ->send();
                     }),
             ]);
     }
