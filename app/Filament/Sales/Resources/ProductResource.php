@@ -4,11 +4,12 @@ namespace App\Filament\Sales\Resources;
 
 use App\Filament\Sales\Resources\ProductResource\Pages;
 use App\Filament\Sales\Resources\ProductResource\RelationManagers;
-use App\Models\Product;
+use App\Models\ProductSales;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -19,7 +20,7 @@ use Illuminate\Support\Facades\Auth;
 
 class ProductResource extends Resource
 {
-    protected static ?string $model = Product::class;
+    protected static ?string $model = ProductSales::class;
     protected static ?string $navigationGroup = 'Manajemen Produk';
     protected static ?string $navigationIcon = 'heroicon-o-inbox-stack';
 
@@ -34,31 +35,34 @@ class ProductResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+        ->modifyQueryUsing(function (Builder $query) {
+            $query->whereHas('salesStocks'); // hanya produk yang punya stok
+        })
             ->columns([
-                Tables\Columns\ImageColumn::make('image')
+                ImageColumn::make('image')
                     ->label('Gambar')
                     ->getStateUsing(fn($record) => asset('storage/' . $record->image)),
-                Tables\Columns\TextColumn::make('nama_produk')
+                TextColumn::make('nama_produk')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('jenis_produk')->badge(),
-                Tables\Columns\TextColumn::make('productUnits.unit.nama_unit')
+                TextColumn::make('jenis_produk')->badge(),
+                TextColumn::make('productUnits.unit.nama_unit')
                     ->label('Satuan Tersedia')
                     ->listWithLineBreaks()
                     ->badge(),
-                Tables\Columns\TextColumn::make('productUnits.harga_jual')
+                TextColumn::make('productUnits.harga_jual')
                     ->label('Harga Satuan')
                     ->listWithLineBreaks(),
                 TextColumn::make('stok_saat_ini')
                     ->label('Stok Saat Ini')
-                    ->getStateUsing(function (Product $record) {
-                        return $record->calculateStock()['display'];
+                    ->getStateUsing(function (ProductSales $record) {
+                        return $record->calculateSalesStockStatus()['display'];
                     })
-                    ->description(function (Product $record) {
-                        $stockData = $record->calculateStock();
+                    ->description(function (ProductSales $record) {
+                        $stockData = $record->calculateSalesStockStatus();
                         $baseUnitName = $record->productUnits()->where('is_base_unit', true)->first()->unit->nama_unit ?? 'satuan dasar';
-                        return '(Total: ' . $stockData['total_in_base'] . ' ' . $baseUnitName . ')';
+                        return '(Total: ' . $stockData['net'] . ' ' . $baseUnitName . ')';
                     })
-                    ->sortable(false),
+
             ])
             ->filters([
                 //
@@ -86,4 +90,4 @@ class ProductResource extends Resource
     {
         return false;
     }
-}   
+}

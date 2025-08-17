@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('products', function (Blueprint $table) {
             $table->integer('id')->autoIncrement();
             $table->string('nama_produk', 100);
-            $table->enum('jenis_produk', ['obat herbal', 'obat komersial']);
+            $table->enum('jenis_produk', ['obat', 'jamu']);
             $table->string('image')->nullable();
             $table->timestamps();
         });

@@ -22,7 +22,7 @@ class sales_stocks extends Model
     }
     public function stockmovement()
     {
-        return $this->belongsTo(StockMovement::class);
+        return $this->belongsTo(StockMovement::class,'stock_movement_id');
     }
     
 }

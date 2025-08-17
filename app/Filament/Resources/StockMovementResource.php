@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\StockMovementResource\Pages;
+use App\Models\ProductUnit;
 use App\Models\StockMovement;
 use App\Models\User;
 use Filament\Forms;
@@ -12,6 +13,8 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Validation\ValidationException;
 
 class StockMovementResource extends Resource
 {
@@ -26,9 +29,20 @@ class StockMovementResource extends Resource
         return $form
             ->schema([
                 Forms\Components\Select::make('product_unit_id')
-                    ->relationship('productUnit', 'id', fn ($query) => $query->whereNull('parent_id'))
-                    ->getOptionLabelFromRecordUsing(fn($record) => "{$record->product->nama_produk} - {$record->unit->nama_unit}")
-                    ->searchable(['product.nama_produk', 'unit.nama_unit'])
+                    ->relationship(
+                        name: 'productUnit',
+                        titleAttribute: 'id', // default label
+                        modifyQueryUsing: function ($query) {
+                            $query->join('products', 'products.id', '=', 'product_units.product_id')
+                                ->join('units', 'units.id', '=', 'product_units.unit_id')
+                                ->select('product_units.*', 'products.nama_produk', 'units.nama_unit');
+                        }
+                    )
+                    ->getOptionLabelFromRecordUsing(
+                        fn($record) => "{$record->product->nama_produk} - {$record->unit->nama_unit}"
+                    )
+                    ->searchable(['products.nama_produk', 'units.nama_unit'])
+
                     ->preload()
                     ->required()
                     ->reactive()
@@ -42,21 +56,23 @@ class StockMovementResource extends Resource
                     ->reactive()
                     ->label('Tipe Gerakan'),
                 Forms\Components\Select::make('sales_id')
-                    ->options(
-                        User::where('role', 'sales')->pluck('name', 'id')
+                    ->relationship(
+                        name: 'sales',
+                        titleAttribute: 'name',
+                        modifyQueryUsing: fn($query) => $query->where('role', 'sales')
                     )
                     ->label('Sales')
                     ->searchable()
                     ->preload()
-                    ->required(fn(Get $get) => $get('type') === 'out')
+                    ->required()
                     ->visible(fn(Get $get) => $get('type') === 'out'),
                 Forms\Components\TextInput::make('quantity')
                     ->required()
                     ->numeric()
-                    ->minValue(1) // Aturan sederhana, karena validasi utama ada di model
-                    ->helperText('Masukkan jumlah stok. Validasi stok akan dilakukan saat menyimpan.')
-                    ->live(onBlur: true)
-                    ->afterStateUpdated(fn($state, Forms\Set $set) => $set('quantity', abs($state))),
+                    ->minValue(1)
+                    ->helperText('Masukkan jumlah stok.')
+                    
+                    
             ]);
     }
 
@@ -96,16 +112,7 @@ class StockMovementResource extends Resource
                         'in' => 'Stok Masuk',
                         'out' => 'Stok Keluar',
                     ])
-            ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
-            ]);
+                    ]);
     }
 
     public static function getPages(): array
@@ -115,5 +122,9 @@ class StockMovementResource extends Resource
             'create' => Pages\CreateStockMovement::route('/create'),
             'edit' => Pages\EditStockMovement::route('/{record}/edit'),
         ];
+    }
+    public static function canEdit(Model $record): bool
+    {
+        return false;
     }
 }

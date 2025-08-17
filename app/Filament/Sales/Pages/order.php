@@ -33,17 +33,25 @@ class Order extends Page implements HasForms
     public array $orderQuantities = [];
     public array $salesStocks = [];
     public array $productsByProduct = [];
-    public ?string $paymentMethod = 'cash';
+    public ?string $paymentMethod = 'Cash';
 
     /**
      * Method ini berjalan saat halaman pertama kali dimuat.
-     * Logika di sini telah dirombak total untuk mendukung stok virtual.
      */
     public function mount(): void
     {
+        $this->orderQuantities = [];
+        $this->recalculateAndPrepareViewData();
+    }
+
+    /**
+     * Method pusat untuk perhitungan stok dan persiapan data.
+     */
+    public function recalculateAndPrepareViewData(): void
+    {
         $salesId = auth()->id();
 
-        // --- LANGKAH 1: Hitung stok FISIK yang dipegang sales ---
+        // LANGKAH 1 & 2 (SAMA SEPERTI SEBELUMNYA)
         $salesStockRecords = sales_stocks::where('sales_id', $salesId)->get();
         $physicalStocks = [];
         foreach ($salesStockRecords->groupBy('product_unit_id') as $productUnitId => $records) {
@@ -55,68 +63,92 @@ class Order extends Page implements HasForms
             }
         }
 
-        // --- LANGKAH 2: Hitung stok EFEKTIF (Fisik + Virtual dari Parent) ---
         $effectiveStocks = $physicalStocks;
-
-        // Ambil model ProductUnit untuk stok fisik, beserta relasi children-nya
-        $parentUnits = ProductUnit::with('children')
-            ->whereIn('id', array_keys($physicalStocks))
-            ->get();
-
-        foreach ($parentUnits as $parentUnit) {
-            // Jika unit ini punya turunan (misal: Kotak punya Saset)
+        $allPhysicalUnits = ProductUnit::with('children')->whereIn('id', array_keys($physicalStocks))->get();
+        foreach ($allPhysicalUnits as $parentUnit) {
             if ($parentUnit->children->isNotEmpty()) {
-                $parentQuantity = $physicalStocks[$parentUnit->id];
-
+                $parentQuantity = $physicalStocks[$parentUnit->id] ?? 0;
                 foreach ($parentUnit->children as $childUnit) {
-                    // Hitung berapa banyak unit anak yang bisa didapat dari parent
                     if ($childUnit->conversion_rate > 0) {
                         $derivedChildQuantity = $parentQuantity * $childUnit->conversion_rate;
-
-                        // Tambahkan stok virtual ke stok efektif.
-                        // Jika sudah ada stok fisik untuk anak, jumlahkan.
-                        if (isset($effectiveStocks[$childUnit->id])) {
-                            $effectiveStocks[$childUnit->id] += $derivedChildQuantity;
-                        } else {
-                            $effectiveStocks[$childUnit->id] = $derivedChildQuantity;
-                        }
+                        $effectiveStocks[$childUnit->id] = ($effectiveStocks[$childUnit->id] ?? 0) + $derivedChildQuantity;
                     }
                 }
             }
         }
         
-        // Simpan hasil perhitungan stok efektif sebagai sumber kebenaran
-        $this->salesStocks = $effectiveStocks;
+        // LANGKAH 3: PENYESUAIAN BERDASARKAN KERANJANG (SAMA SEPERTI SEBELUMNYA)
+        $cartItems = $this->getCartItems();
+        if (!empty($cartItems)) {
+            $allUnitsInCart = ProductUnit::with(['children', 'parent'])->whereIn('id', array_keys($cartItems))->get();
+            foreach ($allUnitsInCart as $unitInCart) {
+                $quantityInCart = $cartItems[$unitInCart->id];
+                
+                if (isset($effectiveStocks[$unitInCart->id])) {
+                    $effectiveStocks[$unitInCart->id] -= $quantityInCart;
+                }
 
-        // --- LANGKAH 3: Siapkan data untuk ditampilkan di View ---
-        $allUnitIds = array_keys($this->salesStocks);
+                if ($unitInCart->children->isNotEmpty()) {
+                    foreach ($unitInCart->children as $childUnit) {
+                        if (isset($effectiveStocks[$childUnit->id]) && $childUnit->conversion_rate > 0) {
+                            $reductionAmount = $quantityInCart * $childUnit->conversion_rate;
+                            $effectiveStocks[$childUnit->id] -= $reductionAmount;
+                        }
+                    }
+                }
+                
+                if ($unitInCart->parent) {
+                    $parentUnit = $unitInCart->parent;
+                    if (isset($effectiveStocks[$parentUnit->id]) && $unitInCart->conversion_rate > 0) {
+                        $reductionAmountInParentUnit = $quantityInCart / $unitInCart->conversion_rate;
+                        $effectiveStocks[$parentUnit->id] -= $reductionAmountInParentUnit;
+                    }
+                }
+            }
+        }
         
+        // --- LANGKAH 4 (BARU): Bulatkan ke bawah stok parent yang mungkin menjadi desimal ---
+        $allUnitDetails = ProductUnit::whereIn('id', array_keys($effectiveStocks))->get()->keyBy('id');
+        foreach ($effectiveStocks as $unitId => $stock) {
+            // Cek apakah unit ini adalah parent (punya children)
+            if (isset($allUnitDetails[$unitId]) && $allUnitDetails[$unitId]->children()->exists()) {
+                // Jika ya, bulatkan stoknya ke bawah ke integer terdekat
+                $effectiveStocks[$unitId] = floor($stock);
+            }
+        }
+
+        // --- LANGKAH 5: Simpan hasil akhir & siapkan data view ---
+        $this->salesStocks = $effectiveStocks;
+        $allUnitIds = array_keys($this->salesStocks);
         $productUnitsForView = ProductUnit::with(['product', 'unit'])
             ->whereIn('id', $allUnitIds)
             ->get();
-
-        $this->productsByProduct = $productUnitsForView->groupBy('product.nama_produk')->toArray();
-
-        // --- LANGKAH 4: Inisialisasi kuantitas pesanan menjadi 0 ---
-        $this->orderQuantities = [];
+        
         foreach ($allUnitIds as $id) {
-            $this->orderQuantities[$id] = 0;
+            if (!isset($this->orderQuantities[$id])) {
+                $this->orderQuantities[$id] = 0;
+            }
         }
+        
+        $this->productsByProduct = $productUnitsForView->groupBy('product.nama_produk')->toArray();
     }
 
     /**
      * Aksi untuk menambah kuantitas pesanan.
-     * Logika ini tidak perlu diubah karena sudah memeriksa $this->salesStocks.
+     * Tidak perlu diubah karena $this->salesStocks sudah dibulatkan.
      */
     public function incrementQuantity(int $productUnitId): void
     {
         $maxStock = $this->salesStocks[$productUnitId] ?? 0;
-        if (($this->orderQuantities[$productUnitId] ?? 0) < $maxStock) {
+        
+        // Perbandingan ini sekarang aman karena $maxStock untuk parent sudah di-floor()
+        if ($maxStock > 0 && ($this->orderQuantities[$productUnitId] ?? 0) < $maxStock) {
             $this->orderQuantities[$productUnitId]++;
+            $this->recalculateAndPrepareViewData();
         } else {
             Notification::make()
                 ->title('Stok Tidak Cukup')
-                ->body('Anda tidak bisa memesan melebihi stok yang Anda pegang.')
+                ->body('Stok untuk item ini sudah habis atau terpakai oleh item lain di keranjang.')
                 ->warning()
                 ->send();
         }
@@ -124,19 +156,19 @@ class Order extends Page implements HasForms
 
     /**
      * Aksi untuk mengurangi kuantitas pesanan.
-     * Tidak perlu diubah.
      */
     public function decrementQuantity(int $productUnitId): void
     {
         if (($this->orderQuantities[$productUnitId] ?? 0) > 0) {
             $this->orderQuantities[$productUnitId]--;
+            $this->recalculateAndPrepareViewData();
         }
     }
 
-    /**
-     * Method ini adalah action utama untuk membuat pesanan.
-     * Tidak perlu diubah.
-     */
+    // --- SISA METHOD (getActions, createOrder, getCartItems) TIDAK ADA PERUBAHAN ---
+    // ... (salin sisa method dari file sebelumnya)
+    // ...
+
     protected function getActions(): array
     {
         return [
@@ -147,15 +179,10 @@ class Order extends Page implements HasForms
                 ->disabled(count($this->getCartItems()) === 0),
         ];
     }
-
-    /**
-     * Logika utama untuk menyimpan pesanan ke database.
-     * Tidak perlu diubah.
-     */
+    
     public function createOrder(): void
     {
         $cartItems = $this->getCartItems();
-
         if (empty($cartItems)) {
             Notification::make()->title('Keranjang Kosong')->warning()->send();
             return;
@@ -176,13 +203,12 @@ class Order extends Page implements HasForms
                 $order = OrderModel::create([
                     'user_id' => $salesId,
                     'total_harga' => $totalPrice,
-                    'shipping_cost' => 0,
                     'status' => 'selesai',
                 ]);
 
                 Payment::create([
                     'order_id' => $order->id,
-                    'total_pembayaran' => $order->total_harga + $order->shipping_cost,
+                    'total_pembayaran' => $order->total_harga,
                     'metode_pembayaran' => $this->paymentMethod,
                     'status_pembayaran' => 'menunggu',
                 ]);
@@ -208,8 +234,7 @@ class Order extends Page implements HasForms
                 }
 
                 Notification::make()->title('Pesanan berhasil dibuat!')->success()->send();
-                
-                $this->reset('orderQuantities', 'paymentMethod');
+                $this->reset('paymentMethod');
                 $this->mount();
             });
         } catch (\Exception $e) {
@@ -217,11 +242,8 @@ class Order extends Page implements HasForms
         }
     }
 
-    /**
-     * Helper untuk mendapatkan item yang ada di keranjang (quantity > 0).
-     */
     public function getCartItems(): array
     {
-        return array_filter($this->orderQuantities, fn ($quantity) => $quantity > 0);
+        return array_filter($this->orderQuantities, fn($quantity) => $quantity > 0);
     }
 }

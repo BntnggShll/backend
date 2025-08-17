@@ -82,55 +82,50 @@ class ShipmentResource extends Resource
             ])
             ->actions([
                 Action::make('Terima Pembayaran')
-                ->label('Terima Pembayaran')
-                ->icon('heroicon-o-banknotes')
-                ->color('danger')
-                ->visible(condition: fn($record) => $record->order?->payments?->metode_pembayaran === 'Cash')
-                ->requiresConfirmation()
-                ->modalHeading('Konfirmasi Pembayaran')
-                ->modalDescription('Menerima pembayaran dari pelanggan')
-                ->modalSubmitActionLabel('Ya')
-                ->action(function ($record) {
-                    $record->order?->payments?->update(['status_pembayaran'=>'menunggu']);
-                    $record->order?->update(['status'=>'selesai']);
-                    $record->update([
-                        'status_pengiriman' => 'diterima',
-                    ]);
+                    ->label('Terima Pembayaran')
+                    ->icon('heroicon-o-banknotes')
+                    ->color('danger')
+                    ->visible(condition: fn($record) => $record->order?->payments?->metode_pembayaran === 'Cash')
+                    ->requiresConfirmation()
+                    ->modalHeading('Konfirmasi Pembayaran')
+                    ->modalDescription('Menerima pembayaran dari pelanggan')
+                    ->modalSubmitActionLabel('Ya')
+                    ->action(function ($record) {
+                        $record->order?->payments?->update(['status_pembayaran' => 'menunggu']);
+                        $record->order?->update(['status' => 'selesai']);
+                        $record->update([
+                            'status_pengiriman' => 'diterima',
+                        ]);
 
-                    // Kirim notifikasi sukses
-                    Notification::make()
-                        ->title('Pembayaran Diterima')
-                        ->body('Status pembayaran telah diterima.')
-                        ->success()
-                        ->send();
-                }),
+                        // Kirim notifikasi sukses
+                        Notification::make()
+                            ->title('Pembayaran Diterima')
+                            ->body('Status pembayaran telah diterima.')
+                            ->success()
+                            ->send();
+                    }),
                 Action::make('Selesaikan pengiriman')
-                ->label('Selesaikan pengiriman')
-                ->icon('heroicon-o-truck')
-                ->color('success')
-                ->visible(condition: fn($record) => $record->order?->payments?->metode_pembayaran !== 'Cash' && !is_null($record->order?->payments))
-                ->requiresConfirmation()
-                ->modalHeading('Konfirmasi Pembayaran')
-                ->modalDescription('Menerima pembayaran dari pelanggan')
-                ->modalSubmitActionLabel('Ya')
-                ->action(function ($record) {
-                    $record->order?->update(['status'=>'selesai']);
-                    $record->update([
-                        'status_pengiriman' => 'diterima',
-                    ]);
+                    ->label('Selesaikan pengiriman')
+                    ->icon('heroicon-o-truck')
+                    ->color('success')
+                    ->visible(condition: fn($record) => $record->order?->payments?->metode_pembayaran !== 'Cash' && !is_null($record->order?->payments))
+                    ->requiresConfirmation()
+                    ->modalHeading('Konfirmasi pengiriman selesai')
+                    ->modalDescription('Produk sudah di kirim ke penerima')
+                    ->modalSubmitActionLabel('Ya')
+                    ->action(function ($record) {
+                        $record->order?->update(['status' => 'selesai']);
+                        $record->update([
+                            'status_pengiriman' => 'diterima',
+                        ]);
 
-                    // Kirim notifikasi sukses
-                    Notification::make()
-                        ->title('Pengiriman selesai')
-                        ->body('Produk sudah berhasil di antarkan.')
-                        ->success()
-                        ->send();
-                }),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
+                        // Kirim notifikasi sukses
+                        Notification::make()
+                            ->title('Pengiriman selesai')
+                            ->body('Produk sudah berhasil di antarkan.')
+                            ->success()
+                            ->send();
+                    }),
             ]);
     }
 

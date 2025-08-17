@@ -42,7 +42,8 @@ class PaymentResource extends Resource
                         return $query->orWhereHas('order.orderItems.productunit.product', function ($q) use ($search) {
                             $q->where('nama_produk', 'like', "%{$search}%");
                         });
-                    }),
+                    })
+                    ->badge(),
                 TextColumn::make('order.user.name')
                     ->label('Pelanggan')
                     ->searchable(query: function (Builder $query, string $search): Builder {

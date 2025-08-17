@@ -38,8 +38,8 @@ class ProductResource extends Resource
                             ->maxLength(255),
                         Forms\Components\Select::make('jenis_produk')
                             ->options([
-                                'obat herbal' => 'Obat Herbal',
-                                'obat komersial' => 'Obat Komersial',
+                                'obat' => 'Obat',
+                                'jamu' => 'jamu',
                             ])
                             ->required(),
                         Forms\Components\FileUpload::make('image')
@@ -118,6 +118,10 @@ class ProductResource extends Resource
                         return '(Total: ' . $stockData['total_in_base'] . ' ' . $baseUnitName . ')';
                     })
                     ->sortable(false),
+                TextColumn::make('productUnits.min_stock_level')
+                ->label('minimal Stok')
+                ->listWithLineBreaks()
+                ->badge(),
 
 
             ])

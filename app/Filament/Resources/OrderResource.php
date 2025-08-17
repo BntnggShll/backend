@@ -39,12 +39,24 @@ class OrderResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('id')
+                TextColumn::make('order_number')
                     ->label('Id Order'),
                 TextColumn::make('orderItems.productunit.product.nama_produk')
                     ->label('Barang Dikirim')
                     ->limit(30)
-                    ->wrap(),
+                    ->badge(),
+                TextColumn::make('orderItems')
+                    ->label('Jumlah')
+                    ->getStateUsing(function ($record) {
+                        // Pastikan relasi orderItems ada
+                        return $record->orderItems->map(function ($item) {
+                            return $item->jumlah . ' ' . $item->productunit->unit->nama_unit;
+                        })->join('<br>');
+                    })
+                    ->html()
+                    ->color(fn ($record) => $record->orderItems->count() > 1 ? 'success' : 'gray'),
+
+
                 TextColumn::make('user.name')
                     ->label('Nama pembeli')
                     ->searchable(),
@@ -112,12 +124,12 @@ class OrderResource extends Resource
                     }),
             ])
             ->actions([
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
             ]);
+        // ->bulkActions([
+        //     Tables\Actions\BulkActionGroup::make([
+        //         Tables\Actions\DeleteBulkAction::make(),
+        //     ]),
+        // ]);
     }
 
     public static function getRelations(): array

@@ -31,7 +31,7 @@
                                         <p class="text-sm text-gray-500 dark:text-gray-400">
                                             Stok Anda: <span class="font-medium text-primary-600">{{ $availableStock }}</span>
                                         </p>
-                                    </div>
+                                    </div>  
 
                                     {{-- Tombol Interaktif Plus/Minus --}}
                                     <div class="flex items-center gap-3">

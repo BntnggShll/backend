@@ -62,15 +62,15 @@ class OrdersController extends Controller
                     'quantity' => -$item['quantity'],
                     'type' => 'out',
                 ]);
+                // $topUnit = $productUnit->product->productUnits->sortBy('conversion_rate')->first();
 
-                // Cari unit tertinggi (stok fisik tersimpan di sini)
-                $topUnit = $productUnit->product->productUnits->sortBy('conversion_rate')->first();
+                // if ($topUnit) {
+                //     $convertedQty = $item['quantity'] / $productUnit->conversion_rate;
+                // }
+                
 
-                // Konversi ke unit tertinggi
-                $convertedQty = $item['quantity'] / $productUnit->conversion_rate;
-
-                // Update stok nyata hanya di unit tertinggi
-                StockMovement::where('product_unit_id', $topUnit->id)->decrement('quantity', $convertedQty);
+                // // Update stok nyata hanya di unit tertinggi
+                // StockMovement::where('product_unit_id', $topUnit->id)->decrement('quantity', $convertedQty);
 
 
 

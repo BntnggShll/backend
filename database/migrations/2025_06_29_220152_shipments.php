@@ -16,7 +16,11 @@ return new class extends Migration
             $table->Integer('order_id');
             $table->Integer('sales_id')->nullable();
             $table->date('perkiraan_pengiriman')->nullable();
-            $table->enum('status_pengiriman',['diproses','dikirim','diterima'])->nullable()->default('diproses');
+            $table->enum('status_pengiriman',['diproses','dikirim','diterima'])->nullable()->default('diproses');   
+            $table->string('nama_penerima', 150);
+            $table->string('nomor_telp', 15);
+            $table->text('catatan')->nullable();
+            $table->text('alamat_pengantaran');
             $table->timestamps();
         
             $table->foreign('order_id')->references('id')->on('orders')->onDelete('cascade');

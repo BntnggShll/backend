@@ -36,7 +36,7 @@ class ResellerResource extends Resource
                 TextColumn::make('user.name')
                     ->label('Nama')
                     ->searchable(),
-                TextColumn::make('no_telp')
+                TextColumn::make('user.no_telp')
                     ->label('No Telepon')
                     ->searchable(),
                 TextColumn::make('nama_toko')
@@ -55,18 +55,7 @@ class ResellerResource extends Resource
                     ->label('Tanggal Bergabung')
                     ->dateTime('d M Y')
                     ->sortable(),
-            ])
-            ->filters([
-                SelectFilter::make('status')
-                    ->options([
-                        'proses' => 'Proses',
-                        'terima' => 'Terima',
-                        'tolak' => 'Tolak',
-                    ])
-            ])
-            ->actions([
-                
-            ]);
+                    ]);
     }
 
     public static function getRelations(): array

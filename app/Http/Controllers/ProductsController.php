@@ -6,14 +6,19 @@ use App\Http\Controllers\Controller;
 use App\Models\Inventory;
 use App\Models\Product;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ProductsController extends Controller
 {
     public function index()
     {
         try {
-            // Ambil semua produk dan relasinya secara efisien dengan Eager Loading
-            $products = Product::with('productUnits.unit')->latest()->get();
+            $products = Product::with('productUnits.unit')
+                ->withSum('orderItems', 'jumlah')
+                ->orderByDesc('order_items_sum_jumlah')
+                ->get();
+
 
             $productsWithDetails = $products->map(function ($product) {
                 $stockInfo = $product->calculateStock();
@@ -35,10 +40,10 @@ class ProductsController extends Controller
                     'product_units' => $unitsData,
                 ];
             })
-            ->filter(function ($product) {
-                return !is_null($product['stock_display']);
-            })
-            ->values();
+                ->filter(function ($product) {
+                    return !is_null($product['stock_display']);
+                })
+                ->values();
             return response()->json(['success' => true, 'data' => $productsWithDetails]);
 
         } catch (\Exception $e) {
@@ -105,76 +110,103 @@ class ProductsController extends Controller
             ], 500);
         }
     }
-
-    private function calculateChildrenUnits($unit, $baseQty, $conversion = 1, &$result = [])
-    {
-        foreach ($unit->children as $child) {
-            $totalConversion = $conversion * $child->conversion_rate;
-            $quantity = $baseQty * $totalConversion;
-
-            $result[] = [
-                'unit_id' => $child->id,
-                'unit_name' => $child->unit->nama_unit ?? '-',
-                'conversion' => $totalConversion,
-                'quantity' => $quantity,
-                'is_base' => false
-            ];
-
-            // Rekursi: cari cucu unit
-            $this->calculateChildrenUnits($child, $baseQty, $totalConversion, $result);
-        }
-
-        return $result;
-    }
-
     public function stok()
     {
         try {
             $products = Product::with([
                 'productUnits.unit',
-                'productUnits.inventory',
-                'productUnits.children.unit',
-                'productUnits.children.children' // Untuk eager loading awal
+                'productUnits.inventory'
             ])->get();
 
             $data = $products->map(function ($product) {
-                $units = $product->productUnits ?? collect();
 
-                $baseUnit = $units->firstWhere('parent_id', null);
+                $units = $product->productUnits;
 
-                $baseQty = $baseUnit && $baseUnit->inventory
-                    ? $baseUnit->inventory->quantity
-                    : 0;
+                if ($units->isEmpty()) {
+                    return ['product_id' => $product->id, 'nama_produk' => $product->nama_produk, 'units' => [], 'total_in_base' => 0, 'display_stock' => 'Tidak ada unit'];
+                }
+                $baseUnit = $units->firstWhere('is_base_unit', true);
+                if (!$baseUnit) {
+                    return ['product_id' => $product->id, 'nama_produk' => $product->nama_produk, 'units' => [], 'total_in_base' => 0, 'display_stock' => 'Base unit tidak di-set'];
+                }
 
-                $resultUnits = [];
+                // Langkah 1 & 2: Hitung faktor konversi dan total stok (tetap sama dan sudah benar)
+                $conversionFactors = [];
+                $calculateFactor = function ($unit) use (&$calculateFactor, &$conversionFactors, $units) {
+                    if (isset($conversionFactors[$unit->id]))
+                        return $conversionFactors[$unit->id];
+                    if ($unit->is_base_unit)
+                        return $conversionFactors[$unit->id] = 1;
+                    $childUnit = $units->firstWhere('parent_id', $unit->id);
+                    if (!$childUnit)
+                        return $conversionFactors[$unit->id] = 0;
+                    return $conversionFactors[$unit->id] = $childUnit->conversion_rate * $calculateFactor($childUnit);
+                };
+                foreach ($units as $unit) {
+                    $calculateFactor($unit);
+                }
 
-                // Base unit
-                $resultUnits[] = [
-                    'unit_id' => $baseUnit->id,
-                    'unit_name' => $baseUnit->unit->nama_unit ?? '-',
-                    'conversion' => 1,
-                    'quantity' => $baseQty,
-                    'is_base' => true
-                ];
+                $totalInBase = 0;
+                foreach ($units as $unit) {
+                    $quantity = $unit->inventory->quantity ?? 0;
+                    $factor = $conversionFactors[$unit->id] ?? 0;
+                    $totalInBase += $quantity * $factor;
+                }
 
-                // Ambil anak-anaknya secara rekursif
-                $this->calculateChildrenUnits($baseUnit, $baseQty, 1, $resultUnits);
+                // Langkah 3: Bangun `resultUnits` dengan logika "Tangga"
+                $resultUnits = $units
+                    ->sortByDesc(function ($unit) use ($conversionFactors) {
+                        return $conversionFactors[$unit->id] ?? 0;
+                    })
+                    ->map(function ($unit) use ($conversionFactors, $totalInBase) {
 
+                        // ### INI PERUBAHAN UTAMANYA (LOGIKA TANGGA) ###
+                        $factor = $conversionFactors[$unit->id] ?? 0;
+                        $quantityInThisUnit = ($factor > 0) ? floor($totalInBase / $factor) : 0;
+
+                        return [
+                            'unit_id' => $unit->id,
+                            'unit_name' => $unit->unit->nama_unit ?? '-',
+                            'is_base' => $unit->is_base_unit ?? false,
+                            'conversion' => $factor,
+                            'quantity' => $quantityInThisUnit, // Kuantitas adalah total stok dalam satuan ini
+                        ];
+                    })->values()->all();
+
+                // Langkah 4: `display_stock` tetap menggunakan logika distribusi (pecahan) agar mudah dibaca manusia
+                $displayString = '';
+                $remainingStockForDisplay = $totalInBase;
+                // Kita perlu array terurut untuk display string
+                $sortedForDisplay = collect($resultUnits)->sortByDesc('conversion');
+                foreach ($sortedForDisplay as $unit) {
+                    $factor = $unit['conversion'];
+                    if ($factor <= 0)
+                        continue;
+                    if ($remainingStockForDisplay >= $factor) {
+                        $count = floor($remainingStockForDisplay / $factor);
+                        $displayString .= $count . ' ' . $unit['unit_name'] . ', ';
+                        $remainingStockForDisplay -= $count * $factor;
+                    }
+                }
+                $displayString = rtrim($displayString, ', ') ?: '0 ' . ($baseUnit->unit->nama_unit ?? 'satuan dasar');
+
+                // --- Hasil Akhir ---
                 return [
                     'product_id' => $product->id,
                     'nama_produk' => $product->nama_produk,
-                    'units' => $resultUnits
+                    'units' => $resultUnits,
+                    'total_in_base' => $totalInBase,
+                    'display_stock' => $displayString,
                 ];
             });
 
             return response()->json(['success' => true, 'data' => $data]);
 
         } catch (\Exception $e) {
-            Log::error('Gagal ambil stok: ' . $e->getMessage());
-            return response()->json(['success' => false, 'message' => 'Terjadi kesalahan.'], 500);
+            Log::error('Gagal ambil stok: ' . $e->getMessage() . ' di baris ' . $e->getLine());
+            return response()->json(['success' => false, 'message' => 'Terjadi kesalahan pada server.'], 500);
         }
-
-
     }
+
 
 }

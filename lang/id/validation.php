@@ -63,6 +63,7 @@ return [
     'image'                  => ':Attribute harus berupa gambar.',
     'in'                     => ':Attribute yang dipilih tidak valid.',
     'in_array'               => ':Attribute tidak ada di dalam :other.',
+    'in_array_keys'          => ':attribute bidang harus berisi setidaknya satu dari tombol berikut: :values.',
     'integer'                => ':Attribute harus berupa bilangan bulat.',
     'ip'                     => ':Attribute harus berupa alamat IP yang valid.',
     'ipv4'                   => ':Attribute harus berupa alamat IPv4 yang valid.',

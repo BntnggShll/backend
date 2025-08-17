@@ -10,6 +10,7 @@ use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
@@ -39,6 +40,8 @@ class SalesStockResource extends Resource
     {
         return $table
             ->columns([
+                TextColumn::make('stock_movement_id')
+                    ->label('Id Stok Gudang'),
                 TextColumn::make('sales.name')
                     ->label('Nama Sales'),
                 TextColumn::make('productUnit.product.nama_produk')
@@ -46,9 +49,15 @@ class SalesStockResource extends Resource
                     ->label('Nama Produk'),
                 TextColumn::make('quantity')
                     ->label('jumah Produk'),
-                TextColumn::make('status'),
-                TextColumn::make('stock_movement_id')
-                    ->label('Id Stok Gudang'),
+                BadgeColumn::make('status')
+                    ->colors([
+                        'success' => 'in',
+                        'danger' => 'out',
+                    ]),
+                TextColumn::make('productUnit.unit.nama_unit')
+                    ->label('Satuan unit'),
+                TextColumn::make('created_at')
+                    ->label('Tanggal')
 
 
             ])
@@ -61,7 +70,45 @@ class SalesStockResource extends Resource
                     ])
                     ->default(null)
                     ->placeholder('Semua')
-            ]);
+                    ]);
+            // ->actions([
+            //     Tables\Actions\DeleteAction::make()
+            //         ->visible(fn(Model $record) => $record->status === 'out')
+            //         ->after(function (Model $record) {
+            //             if ($record->status === 'out') {
+            //                 $productUnit = $record->productUnit;
+
+            //                 if ($productUnit) {
+            //                     // 1. Catat pengembalian di unit transaksi
+            //                     sales_stocks::create([
+            //                         'sales_id' => $record->sales_id,
+            //                         'product_unit_id' => $productUnit->id,
+            //                         'quantity' => $record->quantity,
+            //                         'status' => 'in',
+            //                         'order_id' => $record->order_id,
+            //                     ]);
+
+            //                     // 2. Cari unit tertinggi
+            //                     $topUnit = $productUnit->product->productUnits
+            //                         ->sortBy('conversion_rate')
+            //                         ->first();
+
+            //                     // 3. Konversi jumlah ke unit tertinggi
+            //                     $convertedQty = $record->quantity / $productUnit->conversion_rate;
+
+            //                     // 4. Tambahkan stok di unit tertinggi (insert "in" ke sales_stocks)
+            //                     sales_stocks::create([
+            //                         'sales_id' => $record->sales_id,
+            //                         'product_unit_id' => $topUnit->id,
+            //                         'quantity' => $convertedQty,
+            //                         'status' => 'in',
+            //                         'order_id' => $record->order_id,
+            //                     ]);
+            //                 }
+            //             }
+            //         })
+            // ]);
+
     }
 
     public static function getRelations(): array

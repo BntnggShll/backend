@@ -38,44 +38,55 @@ class OrdersResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-        ->columns([
-            TextColumn::make('id')
-            ->label('Id Order'),
-        TextColumn::make('orderItems.productunit.product.nama_produk')
-            ->label('Barang Dikirim')
-            ->limit(30)
-            ->wrap(),
-        TextColumn::make('user.name')
-            ->label('Nama pembeli')
-            ->searchable(),
-        TextColumn::make('total_harga')
-            ->label('Total Harga')
-            ->prefix('Rp '),
-        TextColumn::make('payments.metode_pembayaran')
-            ->label('Metode Pembayaran'),
-        BadgeColumn::make('payments.status_pembayaran')
-            ->colors([
-                'warning' => 'menunggu',
-                'info' => 'diproses',
-                'success' => 'selesai',
-                'danger' => 'gagal',
-                'gray' => 'kadaluarsa',
-            ])
-            ->label('Status Pembayaran'),
-        TextColumn::make('created_at')
-            ->label('Dipesan'),
-        TextColumn::make('updated_at')
-            ->label('Diperbarui'),
-        ])
-            ->filters([
-                //
-            ])
-            ->actions([
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
+            ->columns([
+                TextColumn::make('order_number')
+                    ->label('Id Order'),
+                TextColumn::make('orderItems.productunit.product.nama_produk')
+                    ->label('Barang Dikirim')
+                    ->limit(30)
+                    ->badge(),
+                TextColumn::make('orderItems')
+                    ->label('Jumlah')
+                    ->getStateUsing(function ($record) {
+                        // Pastikan relasi orderItems ada
+                        return $record->orderItems->map(function ($item) {
+                            return $item->jumlah . ' ' . $item->productunit->unit->nama_unit;
+                        })->join('<br>');
+                    })
+                    ->html()
+                    ->color(fn($record) => $record->orderItems->count() > 1 ? 'success' : 'gray'),
+
+
+                TextColumn::make('user.name')
+                    ->label('Nama pembeli')
+                    ->searchable(),
+                TextColumn::make('total_harga')
+                    ->label('Total Harga'),
+                TextColumn::make('shipping_cost')
+                    ->label('Biaya Pengiriman'),
+                BadgeColumn::make('status')
+                    ->colors([
+                        'success' => 'selesai',
+                        'warning' => 'diproses',
+                        'info' => 'dibayar',
+                        'gray' => 'dikirim',
+                        'danger' => 'batal',
+                    ]),
+                TextColumn::make('payments.metode_pembayaran')
+                    ->label('Metode Pembayaran'),
+                BadgeColumn::make('payments.status_pembayaran')
+                    ->colors([
+                        'warning' => 'menunggu',
+                        'info' => 'diproses',
+                        'success' => 'selesai',
+                        'danger' => 'gagal',
+                        'gray' => 'kadaluarsa',
+                    ])
+                    ->label('Status Pembayaran'),
+                TextColumn::make('created_at')
+                    ->label('Dipesan'),
+                TextColumn::make('updated_at')
+                    ->label('Diperbarui'),
             ]);
     }
 
@@ -103,6 +114,6 @@ class OrdersResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->where('user_id', Auth::id());   
+            ->where('user_id', Auth::id());
     }
 }

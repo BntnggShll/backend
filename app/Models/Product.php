@@ -13,15 +13,21 @@ class Product extends Model
     protected $table = 'products';
     protected $fillable = ['nama_produk', 'jenis_produk', 'image'];
 
-    public function orderItems()
-    {
-        return $this->hasMany(OrderItem::class);
-    }
     public function productUnits(): HasMany
     {
-        return $this->hasMany(ProductUnit::class);
+        return $this->hasMany(ProductUnit::class,'product_id');
     }
-
+    public function orderItems()
+    {
+        return $this->hasManyThrough(
+            OrderItem::class,
+            ProductUnit::class,
+            'product_id',       // FK di product_units
+            'product_unit_id',  // FK di order_items
+            'id',               // PK di products
+            'id'                // PK di product_units
+        );
+    }
     public function calculateStock(): array
     {
         $baseUnit = $this->productUnits()->where('is_base_unit', true)->first();

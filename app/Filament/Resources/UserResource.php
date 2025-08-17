@@ -97,11 +97,6 @@ class UserResource extends Resource
                             ->body('Pendaftaran reseller telah ditolak dan perannya dikembalikan ke customer.')
                             ->send();
                     }),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
             ]);
     }
 
