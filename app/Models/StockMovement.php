@@ -151,8 +151,8 @@ class StockMovement extends Model
             ->first();
         if ($lastMovement) {
             $quantity = $lastMovement->quantity;
+            $movementType = $lastMovement->type;
             $ids = $lastMovement->productUnit->id;
-            // 
         }
         $finalQuantity = 0;
         if ($productUnit->is_base_unit === false) {
@@ -171,7 +171,16 @@ class StockMovement extends Model
             ['quantity' => 0]
         );
 
-        $inventory->quantity += $finalQuantity;
+        if ($movementType === 'out') {
+            // Kurangi stok gudang
+            $inventory->quantity -= abs($finalQuantity);
+    
+            // Tambah stok sales
+            // $inventory->quantity_sales += abs($finalQuantity);
+        } else {
+            // Kalau stok masuk → tambah ke gudang saja
+            $inventory->quantity += abs($finalQuantity);
+        }
         $inventory->save();
 
     }

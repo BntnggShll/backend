@@ -2,6 +2,7 @@
 
 namespace App\Filament\Sales\Pages;
 
+use App\Models\Inventory;
 use App\Models\Order as OrderModel;
 use App\Models\OrderItem;
 use App\Models\Payment;
@@ -52,38 +53,36 @@ class Order extends Page implements HasForms
         $salesId = auth()->id();
 
         // LANGKAH 1 & 2 (SAMA SEPERTI SEBELUMNYA)
-        $salesStockRecords = sales_stocks::where('sales_id', $salesId)->get();
+        $inventoryRecords = Inventory::all();
         $physicalStocks = [];
-        foreach ($salesStockRecords->groupBy('product_unit_id') as $productUnitId => $records) {
-            $in = $records->where('status', 'in')->sum('quantity');
-            $out = $records->where('status', 'out')->sum('quantity');
-            $currentStock = $in - $out;
-            if ($currentStock > 0) {
-                $physicalStocks[$productUnitId] = $currentStock;
+        foreach ($inventoryRecords->groupBy('product_unit_id') as $productUnitId => $records) {
+            $qty = $records->sum('quantity_sales');
+            if ($qty > 0) {
+                $physicalStocks[$productUnitId] = $qty;
             }
         }
 
         $effectiveStocks = $physicalStocks;
-        $allPhysicalUnits = ProductUnit::with('children')->whereIn('id', array_keys($physicalStocks))->get();
-        foreach ($allPhysicalUnits as $parentUnit) {
-            if ($parentUnit->children->isNotEmpty()) {
-                $parentQuantity = $physicalStocks[$parentUnit->id] ?? 0;
-                foreach ($parentUnit->children as $childUnit) {
-                    if ($childUnit->conversion_rate > 0) {
-                        $derivedChildQuantity = $parentQuantity * $childUnit->conversion_rate;
-                        $effectiveStocks[$childUnit->id] = ($effectiveStocks[$childUnit->id] ?? 0) + $derivedChildQuantity;
-                    }
-                }
+        $allPhysicalUnits = ProductUnit::with('parent')->whereIn('id', array_keys($physicalStocks))->get();
+
+        foreach ($allPhysicalUnits as $childUnit) {
+            if ($childUnit->parent && $childUnit->conversion_rate > 0) {
+                $childQuantity = $physicalStocks[$childUnit->id] ?? 0;
+        
+                // Konversi stok anak ke parent
+                $derivedParentQuantity = intdiv($childQuantity, $childUnit->conversion_rate);
+        
+                $effectiveStocks[$childUnit->parent->id] = ($effectiveStocks[$childUnit->parent->id] ?? 0) + $derivedParentQuantity;
             }
         }
-        
+
         // LANGKAH 3: PENYESUAIAN BERDASARKAN KERANJANG (SAMA SEPERTI SEBELUMNYA)
         $cartItems = $this->getCartItems();
         if (!empty($cartItems)) {
             $allUnitsInCart = ProductUnit::with(['children', 'parent'])->whereIn('id', array_keys($cartItems))->get();
             foreach ($allUnitsInCart as $unitInCart) {
                 $quantityInCart = $cartItems[$unitInCart->id];
-                
+
                 if (isset($effectiveStocks[$unitInCart->id])) {
                     $effectiveStocks[$unitInCart->id] -= $quantityInCart;
                 }
@@ -96,7 +95,7 @@ class Order extends Page implements HasForms
                         }
                     }
                 }
-                
+
                 if ($unitInCart->parent) {
                     $parentUnit = $unitInCart->parent;
                     if (isset($effectiveStocks[$parentUnit->id]) && $unitInCart->conversion_rate > 0) {
@@ -106,7 +105,7 @@ class Order extends Page implements HasForms
                 }
             }
         }
-        
+
         // --- LANGKAH 4 (BARU): Bulatkan ke bawah stok parent yang mungkin menjadi desimal ---
         $allUnitDetails = ProductUnit::whereIn('id', array_keys($effectiveStocks))->get()->keyBy('id');
         foreach ($effectiveStocks as $unitId => $stock) {
@@ -123,13 +122,13 @@ class Order extends Page implements HasForms
         $productUnitsForView = ProductUnit::with(['product', 'unit'])
             ->whereIn('id', $allUnitIds)
             ->get();
-        
+
         foreach ($allUnitIds as $id) {
             if (!isset($this->orderQuantities[$id])) {
                 $this->orderQuantities[$id] = 0;
             }
         }
-        
+
         $this->productsByProduct = $productUnitsForView->groupBy('product.nama_produk')->toArray();
     }
 
@@ -140,7 +139,7 @@ class Order extends Page implements HasForms
     public function incrementQuantity(int $productUnitId): void
     {
         $maxStock = $this->salesStocks[$productUnitId] ?? 0;
-        
+
         // Perbandingan ini sekarang aman karena $maxStock untuk parent sudah di-floor()
         if ($maxStock > 0 && ($this->orderQuantities[$productUnitId] ?? 0) < $maxStock) {
             $this->orderQuantities[$productUnitId]++;
@@ -179,7 +178,7 @@ class Order extends Page implements HasForms
                 ->disabled(count($this->getCartItems()) === 0),
         ];
     }
-    
+
     public function createOrder(): void
     {
         $cartItems = $this->getCartItems();
@@ -215,7 +214,8 @@ class Order extends Page implements HasForms
 
                 foreach ($cartItems as $productUnitId => $quantity) {
                     $productUnit = ProductUnit::find($productUnitId);
-                    if (!$productUnit) continue;
+                    if (!$productUnit)
+                        continue;
 
                     OrderItem::create([
                         'order_id' => $order->id,

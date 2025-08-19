@@ -13,7 +13,7 @@ return new class extends Migration
             $table->integer('id')->autoIncrement();
             $table->integer('product_unit_id');
             $table->integer('quantity');
-            $table->enum('status',['gudang','sales'])->default('gudang');
+            $table->integer('quantity_sales')->default(0);
             $table->timestamps();
 
             $table->foreign('product_unit_id')->references('id')->on('product_units')->onDelete('cascade');
